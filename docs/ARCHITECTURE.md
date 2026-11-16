@@ -12,8 +12,11 @@
 The initial scaffold is implemented; this document otherwise describes the target
 architecture. React/Vite/TypeScript/Tailwind and Flask/Pydantic settings are configured
 with dependency lockfiles and environment examples. `/api/health`, the local Vite API
-proxy, CORS configuration, and five backend setup tests have been verified. The React
-root intentionally renders nothing.
+proxy, and CORS configuration have been verified. Phase 1 is complete: application-wide
+JSON HTTP error handling preserves status codes and protocol headers, and uncaught
+exceptions return generic 500 JSON outside debug/testing propagation. All 12 backend
+tests pass (five setup and seven error-handling tests). The React root intentionally
+renders nothing.
 
 SQLAlchemy/psycopg, Alembic, Google OAuth/Gmail, and OpenRouter client factories are
 configured. No live provider requests, database tables, migration revisions, auth flows,
@@ -1113,4 +1116,4 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Complete the remaining Flask foundation tasks in `TASKS.md` before implementing application features.
+**Next Step:** Phase 2 — AI Integration & Email Analysis, when requested; live provider credentials and model evaluation remain pending in `TASKS.md`.

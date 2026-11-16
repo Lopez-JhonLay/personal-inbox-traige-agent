@@ -1,8 +1,10 @@
 from flask import Flask
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
 from app.config import Settings
 from app.database import create_database
+from app.errors import handle_http_error
 from app.routes.health import health_bp
 
 
@@ -23,4 +25,5 @@ def create_app(settings: Settings | None = None) -> Flask:
         app, resources={r"/api/*": {"origins": [settings.frontend_url]}}, supports_credentials=True
     )
     app.register_blueprint(health_bp, url_prefix="/api")
+    app.register_error_handler(HTTPException, handle_http_error)
     return app

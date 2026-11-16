@@ -3,7 +3,7 @@
 Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
 
 - `frontend/`: React, TypeScript, Vite, and Tailwind CSS. The React root renders nothing.
-- `backend/`: Flask application factory, Pydantic settings, and `/api/health`.
+- `backend/`: Flask application factory, Pydantic settings, `/api/health`, and JSON error handling.
 - Integration factories: SQLAlchemy with psycopg for Neon, OpenAI SDK for OpenRouter,
   Google OAuth and a read-only Gmail client.
 - Alembic is configured with empty metadata and no migration revisions.
@@ -73,6 +73,28 @@ Invoke-RestMethod http://localhost:5173/api/health
 
 Health is a liveness check and does not test external credentials or connectivity.
 
+## API errors
+
+Flask HTTP errors use the architecture's JSON envelope and retain their status codes:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Not Found"
+  }
+}
+```
+
+Unknown routes return 404; unsupported methods return 405 with the `Allow` header.
+Other HTTP errors preserve protocol headers such as `Retry-After`. Messages are
+generic and do not echo custom exception descriptions. Unexpected exceptions return
+500 JSON when debug/testing exception propagation is disabled; Flask retains its
+normal server-side exception logging. Local `--debug` mode intentionally retains
+Flask's interactive debugger. Error handling is registered in the application factory
+so routing failures are covered as well as Blueprint errors.
+
 ## Integration configuration
 
 All credentials stay in `backend/.env`. Frontend `VITE_*` values are public.
@@ -110,7 +132,10 @@ uses the project's TypeScript 7 package. Local dependencies must already be inst
 Reload the VS Code window after installing extensions if prompted. If this workspace
 already had another Python interpreter selected, run **Python: Select Interpreter**
 and select `backend/.venv/Scripts/python.exe`; the default interpreter setting does
-not override a previously saved selection. The explicit Ruff and Biome binary paths
+not override a previously saved selection. The workspace explicitly names the Python
+executable because this extension combination passed a `.venv` directory setting
+directly to Pylance, preventing installed packages from being resolved.
+The explicit Python, Ruff, and Biome binary paths
 target Windows x64; adjust them locally for other platforms. Other projects' workspace
 settings and global editor preferences are unchanged.
 
@@ -130,8 +155,10 @@ uv run --project backend pytest backend/tests
 uv run --project backend alembic -c backend/alembic.ini heads
 ```
 
-Setup tests construct clients locally and check health, CORS, and the database driver.
-They do not access Gmail, OpenRouter, or Neon.
+The 12 backend tests cover setup/client construction, health, CORS, and API error
+handling, including malformed JSON, preserved HTTP headers, and safe server-error
+responses. They do not access Gmail, OpenRouter, or Neon. Routes used to induce errors
+exist only inside the tests.
 
 ## Migrations and dependency updates
 

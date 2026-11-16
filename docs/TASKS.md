@@ -2,8 +2,8 @@
 
 ## Development Phases & Task Tracker
 
-**Version:** 1.2  
-**Status:** In Progress — Phase 0 Complete; Backend Foundation In Progress  
+**Version:** 1.3  
+**Status:** In Progress — Phases 0 and 1 Complete; Phase 2 Pending Feature Work  
 **Project:** Personal Inbox Triage Agent  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -33,7 +33,7 @@ The project will be developed incrementally, starting with environment setup and
 ### Current Setup — November 16, 2026
 
 The initial project skeleton and dependencies are installed and locked. Verified:
-frontend build, Biome/Prettier, Python Ruff checks, five backend setup tests,
+frontend build, Biome/Prettier, Python Ruff checks, 12 backend tests,
 `GET /api/health`, and the Vite-to-Flask proxy. External client construction is tested
 locally; no live Gmail, OpenRouter, or Neon connection has been verified.
 
@@ -52,6 +52,12 @@ and all five backend tests were verified. Reload VS Code if extension activation
 pending; any previously selected Python interpreter must be changed using
 **Python: Select Interpreter** as described in `README.md`.
 
+Phase 1 is complete. Flask errors return the standard JSON envelope with accurate
+HTTP statuses and preserved protocol headers. Messages do not echo private exception
+descriptions. Unexpected failures use generic 500 JSON outside debug/testing exception
+propagation, retaining Flask's normal exception logging. Seven error-handling tests
+and the five original setup tests pass; error-inducing routes exist only in tests.
+
 Only individually completed tasks are checked below. Client factories and environment
 placeholders do not count as completed auth flows, live integrations, or persistence.
 Phase completion requires all remaining work, including error handling, UI, or security
@@ -61,7 +67,7 @@ that those features or the full MVP are complete.
 ### Overall Progress
 
 - [x] Phase 0 — Development Environment & Project Setup
-- [ ] Phase 1 — Flask Backend Foundation
+- [x] Phase 1 — Flask Backend Foundation
 - [ ] Phase 2 — AI Integration & Email Analysis
 - [ ] Phase 3 — Database Design & Persistence
 - [ ] Phase 4 — Google OAuth & Gmail Integration
@@ -151,7 +157,7 @@ Prepare the local development environment, initialize the project, and configure
 
 # Phase 1 — Flask Backend Foundation
 
-**Status:** In Progress — Foundation Verified; Basic Error Handling Pending
+**Status:** Complete — Flask Foundation and Basic API Error Handling Verified
 
 ### Objective
 
@@ -199,7 +205,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Return a structured JSON response.
 - [x] Test the endpoint directly and through Vite using an HTTP client.
 - [x] Verify the health endpoint returns HTTP 200.
-- [ ] Configure basic error handling.
+- [x] Configure application-wide JSON HTTP error handling, including safe 500 responses and preserved protocol headers.
 
 #### 1.4 Code Quality Setup
 
@@ -208,7 +214,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Create a `tests/` directory.
 - [x] Write a test for the health endpoint.
 - [x] Run formatting and linting checks.
-- [x] Run five backend setup tests successfully.
+- [x] Run backend tests successfully (five setup tests and seven API error-handling tests).
 
 ### Phase Completion Checklist
 
@@ -217,7 +223,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Layered backend structure is established.
 - [x] Environment variables are supported.
 - [x] Basic backend test passes.
-- [ ] Basic API error handling is configured and tested.
+- [x] Basic API error handling is configured and tested.
 
 **Deliverable:** Working Flask REST API foundation.
 
@@ -818,7 +824,8 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [ ] Test database operations.
 - [ ] Test duplicate prevention.
 - [ ] Test AI response validation.
-- [ ] Test error handling.
+- [x] Test basic API error handling (404, 405, malformed JSON, safe server errors, header preservation, and CORS).
+- [ ] Test feature-specific provider and persistence error handling.
 
 #### 9.2 Frontend Testing
 
@@ -1092,6 +1099,8 @@ Use this section to record development milestones, decisions, and challenges.
 - Passed frontend lint/format/build, backend lint/format and five tests, and direct/proxied health checks.
 - Completed Phase 0 editor setup: installed Biome 3.8.1, Ruff 2026.96.0, and Microsoft's TypeScript 7 extension 1.0.2; verified existing Python, Pylance, Prettier, and Tailwind extensions.
 - Added shared VS Code settings/recommendations, validated their tool paths, verified pytest discovery, and reran frontend/backend checks successfully.
+- Completed Phase 1 with application-wide JSON error handling, status/header preservation, and generic error messages. Seven new tests cover API failures; all 12 backend tests pass.
+- Corrected the Windows interpreter setting to `backend/.venv/Scripts/python.exe` after Pylance received the `.venv` folder as its executable and failed to resolve installed packages.
 
 **Solutions or Decisions:**
 
@@ -1101,7 +1110,7 @@ Use this section to record development milestones, decisions, and challenges.
 
 **Next Tasks:**
 
-- Complete basic Flask API error handling when feature work is authorized.
+- Begin Phase 2 when requested: select and evaluate a free OpenRouter model and implement the analysis workflow using synthetic data.
 - Reload VS Code if prompted; use **Python: Select Interpreter** if a prior workspace selection overrides the configured default.
 - Proceed with later-phase feature work only within the requested scope.
 
@@ -1135,13 +1144,13 @@ Use this section to record development milestones, decisions, and challenges.
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 1 — Flask Backend Foundation (remaining error handling)  
-**Current Status:** Phase 0 Complete; Initial Scaffold Verified; Application Features Not Implemented
+**Current Phase:** Phase 2 — AI Integration & Email Analysis (client factory exists; feature work pending)  
+**Current Status:** Phases 0 and 1 Complete; AI, Gmail, Persistence, and UI Features Remain Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.2  
+**Document Version:** 1.3  
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026

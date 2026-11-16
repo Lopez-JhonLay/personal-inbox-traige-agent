@@ -25,7 +25,7 @@
   },
   "js/ts.experimental.useTsgo": true,
   "js/ts.tsdk.path": "./frontend/node_modules/typescript",
-  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv",
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
   "python.envFile": "${workspaceFolder}/backend/.env",
   "python.analysis.extraPaths": ["./backend"],
   "python.testing.pytestEnabled": true,
