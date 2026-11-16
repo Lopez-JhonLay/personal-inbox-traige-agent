@@ -63,5 +63,7 @@ def disconnect_connection(session: Session, user_id: UUID) -> GmailConnection | 
     if connection is not None:
         connection.status = "disconnected"
         connection.encrypted_refresh_token = None
+        connection.operation_id = None
+        connection.operation_expires_at = None
         session.flush()
     return connection

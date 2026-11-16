@@ -9,6 +9,7 @@ from app.database import create_database
 from app.errors import handle_http_error
 from app.routes.analysis import analysis_bp
 from app.routes.auth import auth_bp
+from app.routes.emails import emails_bp
 from app.routes.health import health_bp
 from app.services.integration_errors import IntegrationError
 from app.utils.safe_logging import install_oauth_log_filter
@@ -35,6 +36,7 @@ def create_app(settings: Settings | None = None) -> Flask:
     )
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(emails_bp, url_prefix="/api/emails")
     install_oauth_log_filter()
     if settings.enable_dev_analysis:
         app.register_blueprint(analysis_bp, url_prefix="/api")

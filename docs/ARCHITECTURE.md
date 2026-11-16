@@ -32,8 +32,10 @@ Phase 4 implements Google OAuth with state/PKCE, Fernet-encrypted refresh tokens
 signed application sessions, CSRF-protected disconnection, read-only Gmail retrieval,
 and homepage connection controls. Google calls are mocked in routine tests; live consent,
 token refresh, one-message reading, disconnection, and reauthorization passed. No real
-email content was stored or sent to AI. Synchronization, live dashboard features, and
-deployments remain later work.
+email content was stored or sent to AI in Phase 4. Phase 5 implements bounded sync,
+sequential per-email processing, email APIs, and homepage progress controls. Synthetic
+live acceptance passed for two messages and repeat sync; dashboard features and deployment
+remain later work.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -445,6 +447,22 @@ Stores actions associated with emails.
 Track tasks that the user chooses to manage after reviewing AI recommendations.
 
 AI-generated suggestions should not automatically become confirmed user tasks.
+
+### Phase 5 operation leases
+
+Migration `0002` adds `operation_id` (nullable UUID) and `operation_expires_at` (nullable
+TIMESTAMPTZ) to gmail_connections. An atomic two-minute lease permits only one sync or
+analysis request per connection. Short row locks guard writes against disconnect; network
+calls never hold those locks. Owners release only their own leases. New operations recover
+abandoned processing attempts after expiry. A unique partial index on email_analyses(email_id)
+for pending/processing statuses prevents duplicate active attempts. Historical results remain.
+
+The sync service imports at most 20 matching inbox messages under a 60-second fetch budget.
+The frontend then calls the analysis endpoint sequentially. Existing normalization, AI
+validation/retries, transactions, authentication, and CSRF helpers are reused. An optional
+GMAIL_SYNC_QUERY restricts imports for synthetic verification; provider calls are mocked in
+automated tests. List filters use the latest completed classification, while processing status
+uses the latest attempt. Pending work and failed retries are resumable without a job queue.
 
 ### 5.8 Database Design Rules
 
@@ -1195,5 +1213,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Phase 5 synchronization and AI pipeline. Phases 0 through 4 are complete;
+**Next Step:** Phase 6 frontend foundation. Phases 0 through 5 are complete;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

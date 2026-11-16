@@ -21,6 +21,8 @@ class GmailConnection(IdentityMixin, UpdatedMixin, Base):
     encrypted_refresh_token: Mapped[str | None] = mapped_column(Text)
     scopes: Mapped[list[str]] = mapped_column(JSONB)
     status: Mapped[str] = mapped_column(String(30))
+    operation_id: Mapped[UUID | None]
+    operation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     connected_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

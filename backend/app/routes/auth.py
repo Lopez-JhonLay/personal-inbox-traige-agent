@@ -102,6 +102,7 @@ def status() -> Response:
                     "DATABASE_UNAVAILABLE", "Connection status is unavailable."
                 ) from None
         if result.authenticated:
+            result.sync_query = settings.gmail_sync_query
             if "csrf_token" not in session:
                 session["csrf_token"] = secrets.token_urlsafe(32)
             result.csrf_token = session["csrf_token"]

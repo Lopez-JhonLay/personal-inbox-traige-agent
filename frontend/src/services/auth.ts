@@ -7,6 +7,7 @@ export interface ConnectionStatus {
   email: string | null
   connection_status: string
   csrf_token: string | null
+  sync_query: string
 }
 
 export async function getConnectionStatus(): Promise<ConnectionStatus> {

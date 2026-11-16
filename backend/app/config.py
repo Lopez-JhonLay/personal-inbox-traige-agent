@@ -27,3 +27,4 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     enable_dev_analysis: bool = False
     token_encryption_key: SecretStr | None = None
+    gmail_sync_query: str = ""

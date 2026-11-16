@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { InboxProcessing } from './InboxProcessing'
 import {
   type ConnectionStatus,
   disconnectGmail,
@@ -24,6 +25,7 @@ export function GmailConnection() {
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const dialog = useRef<HTMLDialogElement>(null)
@@ -129,6 +131,7 @@ export function GmailConnection() {
                 <button
                   className="button button-secondary text-sm"
                   type="button"
+                  disabled={processing}
                   onClick={() => dialog.current?.showModal()}
                 >
                   Disconnect
@@ -138,8 +141,8 @@ export function GmailConnection() {
           )}
         </div>
         <p className="mt-4 text-sm text-muted">
-          The inbox above is a sample. Connecting Gmail does not import messages
-          or send them to AI yet.
+          The inbox above is a sample. Emails are imported and analyzed only
+          when you start processing below.
         </p>
         <p className="mt-3 text-sm" role="status">
           {notice}
@@ -148,6 +151,13 @@ export function GmailConnection() {
           <p className="mt-3 text-sm" role="alert">
             {error}
           </p>
+        )}
+        {connected && status.csrf_token && (
+          <InboxProcessing
+            csrfToken={status.csrf_token}
+            syncQuery={status.sync_query}
+            onBusyChange={setProcessing}
+          />
         )}
         <dialog
           ref={dialog}

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -22,7 +23,9 @@ def create_analysis(
     session: Session, user_id: UUID, email_id: UUID, *, model_identifier: str
 ) -> EmailAnalysisRecord:
     require_email(session, user_id, email_id)
-    record = EmailAnalysisRecord(email_id=email_id, model_identifier=model_identifier)
+    record = EmailAnalysisRecord(
+        email_id=email_id, model_identifier=model_identifier, created_at=datetime.now(UTC)
+    )
     session.add(record)
     session.flush()
     return record

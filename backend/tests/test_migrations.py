@@ -22,7 +22,7 @@ def test_initial_revision_matches_models(monkeypatch: pytest.MonkeyPatch) -> Non
     """Replay the frozen migration into metadata without connecting to PostgreSQL."""
     configure_mappers()
     script = ScriptDirectory.from_config(migration_config())
-    assert script.get_heads() == ["0001"]
+    assert script.get_heads() == ["0002"]
     revision = script.get_revision("0001")
     metadata = MetaData()
     operations = Mock()
@@ -31,14 +31,20 @@ def test_initial_revision_matches_models(monkeypatch: pytest.MonkeyPatch) -> Non
     operations.create_index.side_effect = lambda name, table, columns, **kwargs: Index(
         name, *(metadata.tables[table].c[column] for column in columns), **kwargs
     )
+    operations.add_column.side_effect = lambda table, column: metadata.tables[table].append_column(
+        column
+    )
     monkeypatch.setattr(revision.module, "op", operations)
     revision.module.upgrade()
+    second = script.get_revision("0002")
+    monkeypatch.setattr(second.module, "op", operations)
+    second.module.upgrade()
     assert set(metadata.tables) == set(Base.metadata.tables)
     for name, model in Base.metadata.tables.items():
         migrated = metadata.tables[name]
-        assert [str(CreateColumn(c).compile(dialect=dialect())) for c in migrated.columns] == [
-            str(CreateColumn(c).compile(dialect=dialect())) for c in model.columns
-        ]
+        assert sorted(
+            str(CreateColumn(c).compile(dialect=dialect())) for c in migrated.columns
+        ) == sorted(str(CreateColumn(c).compile(dialect=dialect())) for c in model.columns)
         assert sorted(
             str(AddConstraint(c).compile(dialect=dialect())) for c in migrated.constraints
         ) == (sorted(str(AddConstraint(c).compile(dialect=dialect())) for c in model.constraints))
@@ -65,5 +71,5 @@ def test_upgrade_and_downgrade_render_offline(monkeypatch: pytest.MonkeyPatch) -
     assert "ON DELETE CASCADE" in sql
     output.seek(0)
     output.truncate()
-    command.downgrade(config, "0001:base", sql=True)
+    command.downgrade(config, "0002:base", sql=True)
     assert output.getvalue().count("DROP TABLE") == 5

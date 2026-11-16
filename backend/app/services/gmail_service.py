@@ -11,6 +11,7 @@ from googleapiclient.http import HttpRequest
 from app.schemas.gmail_schema import NormalizedEmail
 from app.services.gmail_normalization import normalize_message
 from app.services.integration_errors import IntegrationError
+from app.utils.deadline import remaining_time
 
 
 def create_gmail_client(credentials: Credentials) -> Resource:
@@ -24,7 +25,9 @@ def create_gmail_client(credentials: Credentials) -> Resource:
     )
 
 
-def gmail_request(request: HttpRequest) -> dict:
+def gmail_request(request: HttpRequest, *, deadline: float | None = None) -> dict:
+    if deadline is not None:
+        request.http.http.timeout = remaining_time(deadline)
     try:
         return request.execute(num_retries=0)
     except HttpError as error:
@@ -74,12 +77,15 @@ def get_gmail_profile(client: Resource) -> str:
     return address.strip().lower()
 
 
-def list_message_ids(client: Resource, *, limit: int = 20) -> list[str]:
+def list_message_ids(
+    client: Resource, *, limit: int = 20, query: str = "", deadline: float | None = None
+) -> list[str]:
     if not 1 <= limit <= 20:
         raise ValueError("Request between 1 and 20 messages.")
-    result = gmail_request(
-        client.users().messages().list(userId="me", labelIds=["INBOX"], maxResults=limit)
-    )
+    arguments = {"userId": "me", "labelIds": ["INBOX"], "maxResults": limit}
+    if query:
+        arguments["q"] = query
+    result = gmail_request(client.users().messages().list(**arguments), deadline=deadline)
     try:
         return [item["id"] for item in result.get("messages", [])][:limit]
     except KeyError, TypeError:
@@ -88,7 +94,12 @@ def list_message_ids(client: Resource, *, limit: int = 20) -> list[str]:
         ) from None
 
 
-def get_message(client: Resource, message_id: str) -> NormalizedEmail:
+def get_message(
+    client: Resource, message_id: str, *, deadline: float | None = None
+) -> NormalizedEmail:
     return normalize_message(
-        gmail_request(client.users().messages().get(userId="me", id=message_id, format="full"))
+        gmail_request(
+            client.users().messages().get(userId="me", id=message_id, format="full"),
+            deadline=deadline,
+        )
     )

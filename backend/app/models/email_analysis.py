@@ -2,7 +2,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, CreatedMixin, IdentityMixin
@@ -26,6 +26,12 @@ class EmailAnalysisRecord(IdentityMixin, CreatedMixin, Base):
             name="category",
         ),
         Index("ix_email_analyses_history", "email_id", "status", "created_at", "id"),
+        Index(
+            "uq_email_analyses_active",
+            "email_id",
+            unique=True,
+            postgresql_where=text("status IN ('pending', 'processing')"),
+        ),
     )
 
     email_id: Mapped[UUID] = mapped_column(ForeignKey("emails.id", ondelete="CASCADE"))

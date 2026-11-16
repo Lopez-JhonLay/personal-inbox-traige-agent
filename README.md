@@ -16,12 +16,15 @@ Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
 Phase 4 adds Google OAuth endpoints, encrypted refresh tokens, read-only Gmail retrieval,
 and homepage connection controls. Live consent, refresh, read, disconnect, and reconnect
 passed; see `docs/TASKS.md` for verification details.
-There is no Gmail synchronization, live inbox dashboard, or deployment configuration.
+Phase 5 adds bounded Gmail synchronization, stored email APIs, and sequential analysis
+controls on the homepage. Two-message synthetic live acceptance and repeat sync passed;
+verification details are tracked in `docs/TASKS.md`.
+There is no live inbox dashboard or deployment configuration.
 Phase 2 analyzes supplied plain-text
 synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
 Phase 2 is complete for synthetic-email analysis: the fixed free ERNIE model passed
-all eight evaluation cases and manual review. Real-email AI-provider privacy review
-and the live processing pipeline remain later work; free-model capacity can still be rate limited.
+all eight evaluation cases and manual review. Privacy review for non-synthetic email
+content remains later work; free-model capacity can still be rate limited.
 Client factories do not call external services during application startup.
 
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
@@ -213,10 +216,29 @@ contracts, mocked OpenRouter responses, retry bounds, and the live-evaluation bu
 They do not access Gmail, OpenRouter, or Neon. Routes used to induce errors exist
 only inside the tests. The evaluation script is a separate, opt-in network operation.
 
+## Inbox processing
+
+See the [Phase 5 verification guide](docs/TASKS.md#phase-5-verification-guide) before your
+first run. Local sync is restricted to inbox messages labeled `mailkind-test`; prepare
+fictional test messages and review the displayed filter and confirmation before syncing.
+Clearing `GMAIL_SYNC_QUERY` opts into the most recent inbox messages instead.
+
+Sync stores up to 20 normalized emails and pending analyses. The homepage then analyzes
+one email per request, preserving completed work. Continue analysis resumes pending work;
+Retry failed creates new attempts. A rate limit pauses the remaining queue. Closing the
+page stops scheduling new requests, while any request already running may finish.
+
+Authenticated `/api/emails` endpoints provide listing, detail, analysis, and history;
+mutations use the existing session CSRF token. Imported data remains after disconnect,
+with automated retention controls deferred. The sample inbox stays fictional.
+
 ## Migrations and dependency updates
 
 Alembic uses `DIRECT_DATABASE_URL`, never the application's pooled URL. Revision `0001`
 creates `users`, `gmail_connections`, `emails`, `email_analyses`, and `action_items`.
+Revision `0002` adds a two-minute connection operation lease and a unique partial index
+preventing multiple pending/processing analyses for an email. Upgrade before starting
+the Phase 5 backend. Revisions already applied are never modified.
 Use both URLs for the same Neon database in the ignored `backend/.env`, preserving
 Neon's SSL parameters. No local PostgreSQL installation is required.
 
@@ -249,7 +271,7 @@ with database.session_factory.begin() as session:
 ```
 
 The existing Flask extension supplies `database = app.extensions["database"]`.
-Phase 4 persists OAuth users and encrypted Gmail connections; Phase 5 will persist
+Phase 4 persists OAuth users and encrypted Gmail connections; Phase 5 persists
 synchronized messages and validated results from `analyze_email()`. Provider calls stay
 outside database transactions. `/api/dev/analyze` remains stateless.
 

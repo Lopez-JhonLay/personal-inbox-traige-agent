@@ -21,3 +21,4 @@ class ConnectionStatus(BaseModel):
     email: str | None = None
     connection_status: str = "disconnected"
     csrf_token: str | None = None
+    sync_query: str = ""

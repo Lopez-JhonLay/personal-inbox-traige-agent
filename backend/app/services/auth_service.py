@@ -14,14 +14,19 @@ from app.repositories import user_repository as users
 from app.schemas.gmail_schema import ConnectionStatus
 from app.services.gmail_service import create_gmail_client, get_gmail_profile
 from app.services.integration_errors import IntegrationError
+from app.utils.deadline import remaining_time
 from app.utils.token_encryption import decrypt_token, encrypt_token, token_cipher
 
 GMAIL_SCOPES = ("https://www.googleapis.com/auth/gmail.readonly",)
 
 
 class TokenRequest(Request):
+    def __init__(self, *, deadline: float | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.deadline = deadline
+
     def __call__(self, *args, **kwargs):
-        kwargs["timeout"] = 15
+        kwargs["timeout"] = remaining_time(self.deadline)
         return super().__call__(*args, **kwargs)
 
 
@@ -143,7 +148,9 @@ def finish_authorization(
         return user.id
 
 
-def credentials_for_user(settings: Settings, database: Database, user_id: UUID) -> Credentials:
+def credentials_for_user(
+    settings: Settings, database: Database, user_id: UUID, *, deadline: float | None = None
+) -> Credentials:
     with database.session_factory.begin() as session:
         connection = connections.get_connection(session, user_id)
         if (
@@ -166,7 +173,7 @@ def credentials_for_user(settings: Settings, database: Database, user_id: UUID) 
     )
     try:
         with requests.Session() as transport:
-            credentials.refresh(TokenRequest(session=transport))
+            credentials.refresh(TokenRequest(session=transport, deadline=deadline))
     except RefreshError as error:
         details = error.args[1] if len(error.args) > 1 and isinstance(error.args[1], dict) else {}
         if details.get("error") == "invalid_grant":

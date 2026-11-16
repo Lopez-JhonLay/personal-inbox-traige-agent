@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.10\
-**Status:** In Progress — Phases 0 through 4 Complete; Phase 5 Next\
+**Version:** 1.11\
+**Status:** In Progress — Phases 0 through 5 Complete; Phase 6 Next\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -40,7 +40,7 @@ and project documentation use this name. The existing GitHub repository URL and
 local folder name are retained.
 
 The initial project skeleton and dependencies are installed and locked. Verified:
-frontend build, Biome/Prettier, Python Ruff checks, 129 backend tests (122 offline and seven opt-in Neon tests),
+frontend build, Biome/Prettier, Python Ruff checks, 149 backend tests (134 offline and 15 opt-in Neon tests),
 `GET /api/health`, and the Vite-to-Flask proxy. External client construction is tested
 locally; live OpenRouter synthetic requests have succeeded. Neon connectivity, migration `0001`, and live read-only Gmail OAuth/refresh/retrieval/
 disconnection/reauthorization are verified.
@@ -94,7 +94,7 @@ that those features or the full MVP are complete.
 - [x] [Phase 2 — AI Integration & Email Analysis](#phase-2--ai-integration--email-analysis)
 - [x] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
 - [x] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
-- [ ] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
+- [x] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
 - [ ] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
 - [ ] [Phase 7 — Dashboard & Email Management](#phase-7--dashboard--email-management)
 - [ ] [Phase 8 — Action Tracking & Reply Drafts](#phase-8--action-tracking--reply-drafts)
@@ -854,7 +854,7 @@ the final computer-use check; dedicated keyboard review remains a frontend follo
 # Phase 5 — Email Synchronization & AI Pipeline
 
 
-**Status:** Not Started
+**Status:** Complete — Synthetic Gmail-to-AI Pipeline and Repeat Sync Verified
 
 ## Objective
 
@@ -872,56 +872,142 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 
 ### 5.1 Email Synchronization
 
-- [ ] Create an email synchronization service.
-- [ ] Implement `POST /api/emails/sync`.
-- [ ] Retrieve up to 20 recent messages.
-- [ ] Normalize Gmail message data.
-- [ ] Check for previously stored message IDs.
-- [ ] Save only new messages.
-- [ ] Return synchronization results.
+- [x] Create an email synchronization service.
+- [x] Implement `POST /api/emails/sync`.
+- [x] Retrieve up to 20 recent messages.
+- [x] Normalize Gmail message data.
+- [x] Check for previously stored message IDs.
+- [x] Save only new messages.
+- [x] Return synchronization results.
 
 ### 5.2 AI Processing Pipeline
 
-- [ ] Retrieve unprocessed emails.
-- [ ] Prepare normalized AI input.
-- [ ] Call the AI service.
-- [ ] Validate analysis results.
-- [ ] Save completed analyses.
-- [ ] Record the model identifier.
-- [ ] Track pending, processing, completed, and failed states.
-- [ ] Prevent accidental duplicate analysis.
-- [ ] Allow failed messages to be reanalyzed.
+- [x] Retrieve unprocessed emails.
+- [x] Prepare normalized AI input.
+- [x] Call the AI service.
+- [x] Validate analysis results.
+- [x] Save completed analyses.
+- [x] Record the model identifier.
+- [x] Track pending, processing, completed, and failed states.
+- [x] Prevent accidental duplicate analysis.
+- [x] Allow failed messages to be reanalyzed.
 
 ### 5.3 Processing Reliability
 
-- [ ] Limit AI request concurrency.
-- [ ] Handle OpenRouter rate limits.
-- [ ] Handle partial synchronization failures.
-- [ ] Preserve successfully processed messages.
-- [ ] Prevent overlapping synchronization requests.
-- [ ] Keep processing batches within deployment time limits.
-- [ ] Return understandable processing statuses.
+- [x] Limit AI request concurrency.
+- [x] Handle OpenRouter rate limits.
+- [x] Handle partial synchronization failures.
+- [x] Preserve successfully processed messages.
+- [x] Prevent overlapping synchronization requests.
+- [x] Keep processing batches within deployment time limits.
+- [x] Return understandable processing statuses.
 
 ### 5.4 Email API Endpoints
 
-- [ ] Implement `GET /api/emails`.
-- [ ] Implement `GET /api/emails/{id}`.
-- [ ] Implement `POST /api/emails/{id}/analyze`.
-- [ ] Implement analysis retrieval endpoint.
-- [ ] Add email pagination.
-- [ ] Add priority and category filtering.
-- [ ] Enforce authenticated user ownership.
+- [x] Implement `GET /api/emails`.
+- [x] Implement `GET /api/emails/{id}`.
+- [x] Implement `POST /api/emails/{id}/analyze`.
+- [x] Implement analysis retrieval endpoint.
+- [x] Add email pagination.
+- [x] Add priority and category filtering.
+- [x] Enforce authenticated user ownership.
 
 ## Phase Completion Checklist
 
-- [ ] Gmail messages are synchronized.
-- [ ] New messages are analyzed.
-- [ ] Analysis results persist in Neon.
-- [ ] Duplicate emails are prevented.
-- [ ] Failed processing can be retried.
-- [ ] API endpoints return expected data.
+- [x] Gmail messages are synchronized.
+- [x] New messages are analyzed.
+- [x] Analysis results persist in Neon.
+- [x] Duplicate emails are prevented.
+- [x] Failed processing can be retried.
+- [x] API endpoints return expected data.
 
 **Deliverable:** End-to-end Gmail-to-AI analysis pipeline.
+
+## Phase 5 Verification Guide
+
+Phase 5 keeps the homepage and fictional sample inbox. The Gmail panel now includes
+Sync Inbox, Continue analysis, Retry failed, stored processing counts, and a data-sharing
+confirmation. There is no dashboard or automatic synchronization after connection.
+
+### Prepare fictional Gmail messages
+
+1. In Gmail, create a label named `mailkind-test`.
+2. Prepare two fictional, plain-text messages addressed to your test account. For example:
+   a request to review an imaginary document, and a fictional newsletter with no action.
+   Avoid real confidential content. Leave both messages in Inbox and apply `mailkind-test`.
+3. Local `backend/.env` is configured with `GMAIL_SYNC_QUERY=label:mailkind-test`. The
+   homepage displays the active inbox filter. Only matching inbox messages are imported.
+4. Review OpenRouter account/provider privacy settings before proceeding. Provider data
+   rules vary; see [OpenRouter data controls](https://openrouter.ai/docs/guides/get-started/sovereign-ai).
+   The confirmation explains that sender, subject, readable message text, and timestamps
+   are processed by the configured model. The fixed free model has not been replaced.
+
+### Review the pipeline
+
+1. Open `http://localhost:5173/#gmail-connection` and connect Gmail if needed.
+2. Check that the inbox filter is `label:mailkind-test`. Click Sync Inbox and review the
+   confirmation. Continue only when you are ready to save and analyze those test messages.
+3. Sync imports up to 20 matching messages. The browser then analyzes pending messages
+   sequentially, using a separate authenticated request for each email.
+4. Confirm imported/analyzed counts. In the same authenticated browser, open
+   `http://localhost:5173/api/emails` to inspect stored summaries and processing status.
+   No real-email cards are added to the homepage sample.
+5. Open `/api/emails/EMAIL_UUID` for stored plain text and latest completed analysis.
+   Open `/api/emails/EMAIL_UUID/analyses` for paginated analysis history.
+6. Sync again: previously saved messages must be skipped, without repeating completed AI
+   calls. Closing the page stops further scheduling; Continue analysis resumes pending work.
+7. Rate limits pause the queue and preserve results. Follow Retry-After guidance, then
+   use Retry failed for failed attempts and Continue analysis for untouched pending work.
+   Each continue/retry operation handles at most 20 stored messages.
+
+Use two messages for the initial live acceptance, with at most four inference attempts
+(two attempts per message). Additional live inference needs a deliberate new test run.
+Implementation checks use mocked providers and do not consume that live budget.
+
+### API and operation behavior
+
+- `POST /api/emails/sync` takes no parameters. It returns imported/existing/failed/deferred
+  counts, pending email IDs, and safe per-run errors. Gmail fetch work has a 60-second
+  budget; remaining time bounds provider calls and unfinished work is deferred.
+- `GET /api/emails` supports limit/offset, priority, category, and analysis_status filters.
+  Defaults are limit=20, offset=0, maximum limit=100. List responses omit the original body.
+- `POST /api/emails/EMAIL_UUID/analyze` processes pending/failed work, or reuses a completed
+  result. Send JSON `{"force": true}` to explicitly reanalyze a completed message.
+- All email endpoints require authentication and ownership. Mutations require the session's
+  `X-CSRF-Token`, available from `/api/auth/status`. Responses are marked no-store.
+- Pending/processing attempts are unique per email. The database's two-minute connection
+  lease prevents overlapping sync/analysis requests and serializes provider work per user.
+  Expired processing attempts become failed with PROCESSING_INTERRUPTED on the next operation.
+- Writes verify operation ownership and connection status. Disconnect clears the lease;
+  in-flight results cannot restore the connection or write after disconnection.
+- Each imported email/result is committed separately. Provider calls do not hold database
+  transactions. Completed analysis history is retained when a subsequent attempt fails.
+- Imported plain text and analyses persist after disconnect. No automated retention cleanup,
+  action-item creation, Gmail write operation, job queue, or dashboard is added in Phase 5.
+
+### Database and automated checks
+
+Migration `0002` adds nullable operation_id/operation_expires_at to gmail_connections,
+plus a unique partial index for pending/processing email analyses. The five-table model
+remains. Migration `0001` is unchanged. The Neon migration was applied and Alembic reported
+no schema drift; no existing duplicate active groups were found.
+
+```powershell
+uv run --project backend alembic -c backend/alembic.ini upgrade head
+uv run --project backend pytest backend/tests
+uv run --project backend pytest backend/tests/test_email_pipeline.py backend/tests/test_repositories.py --run-db-tests
+```
+
+Verified: 134 offline tests and 15 opt-in Neon tests passed; Ruff lint/format and frontend
+lint/format/build passed. Neon tests cover full mocked pipeline, filters, retries/history,
+partial imports, expired leases, active-attempt uniqueness, ownership, and disconnect during
+provider calls. Provider calls are mocked; synthetic records are rolled back.
+The user verified two labeled synthetic Gmail messages: both analyses completed and were
+retrievable from the stored-email API with model identifiers, classifications, summaries,
+and extracted deadlines. The user confirmed repeat sync preserved the same results. Retry,
+rate-limit, ownership, interruption, and concurrency failure cases are covered by automated
+tests; no additional live failure injections were needed. Configure
+production function time limits in Phase 10; Phase 5 uses bounded synchronous requests.
 
 ---
 
@@ -1496,6 +1582,11 @@ rules remain in the shared references; phase-specific verification is recorded b
   Google setup instructions are included above. Live OAuth, one-message reading, refresh,
   disconnection, token removal, and reauthorization passed; real email content was not stored
   or sent to AI. The user manually checked the connection and confirmation controls.
+- **Phase 5 implementation:** Added bounded sync, per-email processing and history APIs,
+  PostgreSQL leases/active-attempt uniqueness in migration `0002`, and homepage progress
+  controls. Local import scope is `label:mailkind-test`. Automated tests passed; the user
+  verified completed analyses for two synthetic messages and unchanged results on repeat
+  sync. Phase 5 is complete. No dashboard was added.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1506,13 +1597,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 5 — Email Synchronization & AI Pipeline (next)\
-**Current Status:** Phases 0 through 4 Complete; Neon and Gmail Integration Verified; Live Processing Pipeline and Dashboard Features Pending
+**Current Phase:** Phase 6 — React Frontend Foundation (next)\
+**Current Status:** Phases 0 through 5 Complete; Gmail-to-AI Pipeline Verified with Synthetic Messages; Frontend Foundation and Live Dashboard Work Remain
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.10\
+**Document Version:** 1.11\
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026
