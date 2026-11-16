@@ -19,7 +19,13 @@ def test_health_without_external_credentials(monkeypatch: pytest.MonkeyPatch) ->
     assert response.status_code == 200
     assert response.json == {"success": True, "data": {"status": "ok"}}
     assert app.extensions["database"] is None
-    assert not Base.metadata.tables
+    assert set(Base.metadata.tables) == {
+        "users",
+        "gmail_connections",
+        "emails",
+        "email_analyses",
+        "action_items",
+    }
 
 
 def test_cors_allows_only_configured_origin() -> None:

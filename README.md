@@ -11,14 +11,14 @@ Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
   synthetic-email analysis endpoint with Pydantic-validated OpenRouter results.
 - Integration factories: SQLAlchemy with psycopg for Neon, OpenAI SDK for OpenRouter,
   Google OAuth and a read-only Gmail client.
-- Alembic is configured with empty metadata and no migration revisions.
+- Five SQLAlchemy domain models, ownership-scoped repositories, and an initial Alembic migration.
 
-There are no database domain models, authentication endpoints, Gmail synchronization,
+There are no authentication endpoints, Gmail synchronization,
 live inbox dashboard, or deployment configuration. Phase 2 analyzes supplied plain-text
 synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
 Phase 2 is complete for synthetic-email analysis: the fixed free ERNIE model passed
 all eight evaluation cases and manual review. Real-email privacy review, Gmail access,
-and persistence remain later work; free-model capacity can still be rate limited.
+and the live persistence pipeline remain later work; free-model capacity can still be rate limited.
 Client factories do not call external services during application startup.
 
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
@@ -201,9 +201,50 @@ only inside the tests. The evaluation script is a separate, opt-in network opera
 
 ## Migrations and dependency updates
 
-Alembic uses `DIRECT_DATABASE_URL`, never the application's pooled URL. No database
-schema or migration has been created. When models are implemented, run Alembic from
-`backend/` using `uv run alembic ...` and review generated revisions before applying them.
+Alembic uses `DIRECT_DATABASE_URL`, never the application's pooled URL. Revision `0001`
+creates `users`, `gmail_connections`, `emails`, `email_analyses`, and `action_items`.
+Use both URLs for the same Neon database in the ignored `backend/.env`, preserving
+Neon's SSL parameters. No local PostgreSQL installation is required.
+
+Inspect existing tables and migration state before applying the initial migration.
+It creates only the five domain tables and Alembic's version table; it does not replace
+existing tables. Flask startup never runs migrations or creates tables automatically.
+
+```powershell
+uv run --project backend alembic -c backend/alembic.ini upgrade head
+uv run --project backend alembic -c backend/alembic.ini current
+uv run --project backend pytest backend/tests --run-db-tests
+```
+
+Normal pytest runs are offline. `--run-db-tests` explicitly enables Neon tests using
+`DATABASE_URL`; missing configuration or migrations cause an error. Tests use synthetic
+data inside an outer transaction with session savepoints and always roll back, including
+when a test calls `session.commit()`. They do not truncate tables, drop schemas, or
+execute migration downgrades. Offline tests check the migration against model metadata
+and render upgrade/downgrade SQL. Downgrade execution is not tested against Neon.
+
+Repositories accept an explicit session and user ID, enforce ownership, and flush without
+committing. Services own transactions:
+
+```python
+from app.repositories.email_repository import list_emails
+
+with database.session_factory.begin() as session:
+    emails = list_emails(session, authenticated_user_id, limit=50)
+    # Map records to response data before the session closes.
+```
+
+The existing Flask extension supplies `database = app.extensions["database"]`.
+Phase 4 will persist OAuth users and encrypted Gmail connections; Phase 5 will persist
+synchronized messages and validated results from `analyze_email()`. Provider calls stay
+outside database transactions. `/api/dev/analyze` remains stateless.
+
+Email insertion uses PostgreSQL `ON CONFLICT DO NOTHING` to retain the original message.
+Analysis attempts preserve history; the latest completed attempt is selected by creation
+time and UUID as a tie-breaker. Actions are created explicitly by the user, and must refer
+to their own emails. User deletion cascades to dependent records. Gmail disconnection
+retains email history and clears the encrypted refresh token. The connection repository
+expects caller-encrypted ciphertext; encryption and OAuth entry points arrive in Phase 4.
 
 After changing Python dependencies, regenerate the lock and pip export:
 

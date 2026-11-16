@@ -24,8 +24,11 @@ SQLAlchemy/psycopg, Alembic, and Google OAuth/Gmail client factories are configu
 Phase 2 adds strict email input/output schemas, a versioned prompt, OpenRouter analysis,
 bounded service retries, and an opt-in `/api/dev/analyze` endpoint. Phase 2 is complete:
 the fixed free ERNIE model passed all eight synthetic cases and manual review. Findings are recorded
-in [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) and `TASKS.md`. No database tables, migration revisions, auth flows,
-Gmail synchronization, live inbox dashboard features, or deployments are implemented.
+in [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) and `TASKS.md`.
+Phase 3 adds the five SQLAlchemy models, ownership-scoped repositories, migration `0001`,
+and opt-in rollback-only Neon tests. Migration `0001` is applied; all 88 tests pass.
+See `TASKS.md` for live migration verification.
+Auth flows, Gmail synchronization, live dashboard features, and deployments remain pending.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -439,6 +442,24 @@ Track tasks that the user chooses to manage after reviewing AI recommendations.
 AI-generated suggestions should not automatically become confirmed user tasks.
 
 ### 5.8 Database Design Rules
+
+Phase 3 implementation uses database uniqueness for user email, connection ownership,
+and `(gmail_connection_id, gmail_message_id)`. Email synchronization inserts with
+`ON CONFLICT DO NOTHING`, preserving existing records. User emails are normalized to
+lowercase by the repository. Status, category, and priority constraints enforce the
+documented analysis/action values. Composite indexes cover email received dates,
+analysis history, and user action status/due dates; action email references are indexed.
+
+Foreign keys cascade deletions. Disconnecting Gmail retains history and clears stored
+credentials. Repositories take an explicit session and enforce ownership through the
+connection/email relationships, including checking action email ownership on creation.
+Services own commits and rollbacks. Refresh-token encryption remains a Phase 4 service
+responsibility; the repository accepts only caller-encrypted token values by contract.
+
+Revision `0001` is a frozen schema snapshot. Tests replay it offline against model metadata.
+Explicit `--run-db-tests` tests use the configured Neon pooled URL, with transaction
+rollback and savepoints; routine pytest runs do not connect. No local test database is
+required. Migration downgrades are rendered offline, never executed against Neon by tests.
 
 - Use UUIDs for primary keys.
 - Store timestamps in UTC using `TIMESTAMPTZ`.
@@ -1114,7 +1135,7 @@ The architecture is considered successful when:
 - [ ] Gmail messages can be retrieved and normalized.
 - [ ] The AI service analyzes messages through OpenRouter.
 - [ ] Pydantic validates AI-generated results.
-- [ ] SQLAlchemy persists application data in Neon.
+- [x] SQLAlchemy persists application data in Neon (repositories verified with synthetic data).
 - [ ] Duplicate Gmail messages are prevented.
 - [ ] Users can view email analyses in the dashboard.
 - [ ] Users can manage action statuses.
@@ -1141,5 +1162,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Phase 3 database persistence when requested. Phases 0, 1, and 2 are complete;
+**Next Step:** Phase 4 OAuth/Gmail integration. Phases 0 through 3 are complete;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

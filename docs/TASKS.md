@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.8  
-**Status:** In Progress — Phases 0, 1, and 2 Complete; Phase 3 Next  
+**Version:** 1.9\
+**Status:** In Progress — Phases 0 through 3 Complete; Phase 4 Next\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -40,9 +40,10 @@ and project documentation use this name. The existing GitHub repository URL and
 local folder name are retained.
 
 The initial project skeleton and dependencies are installed and locked. Verified:
-frontend build, Biome/Prettier, Python Ruff checks, 80 backend tests,
+frontend build, Biome/Prettier, Python Ruff checks, 88 backend tests (including opt-in Neon tests),
 `GET /api/health`, and the Vite-to-Flask proxy. External client construction is tested
-locally; live OpenRouter synthetic requests have succeeded. Gmail and Neon remain unverified.
+locally; live OpenRouter synthetic requests have succeeded. Neon connectivity and
+migration `0001` are verified; Gmail remains unverified.
 
 Git is initialized on `main`. The user supplied the GitHub repository at
 `git@github.com:Lopez-JhonLay/personal-inbox-traige-agent.git`; it is configured as
@@ -77,7 +78,7 @@ local key are configured. Initial free-router evaluations used 20 synthetic requ
 and exposed invalid outputs and draft commitments. The subsequent fixed ERNIE model
 passed all eight cases and manual review in nine requests, including one rate limit.
 `baidu/ernie-5.5-flash-preview:free` is now selected. Phase 2 is complete for synthetic
-analysis; Gmail, persistence, and real-email privacy review remain later work.
+analysis; Gmail, the live processing pipeline, and real-email privacy review remain later work.
 See [Phase 2 guide](#phase-2-analysis-and-testing-guide) for findings and limitations.
 
 Only individually completed tasks are checked below. Client factories and environment
@@ -91,7 +92,7 @@ that those features or the full MVP are complete.
 - [x] [Phase 0 — Development Environment & Project Setup](#phase-0--development-environment--project-setup)
 - [x] [Phase 1 — Flask Backend Foundation](#phase-1--flask-backend-foundation)
 - [x] [Phase 2 — AI Integration & Email Analysis](#phase-2--ai-integration--email-analysis)
-- [ ] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
+- [x] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
 - [ ] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
 - [ ] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
 - [ ] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
@@ -545,15 +546,15 @@ Reports: `.cache/phase2-evaluation-fixed-ernie.json` and
 `.cache/phase2-evaluation-fixed-ernie-resume.json` (UTF-16 JSON). The selected model is
 now configured in Settings, the environment example, and local `.env`. There are 80
 passing backend tests; Ruff and frontend lint/format/build checks also passed.
-Future live evaluation uses a new explicit request budget. Phase 3 persistence remains
-the next phase; real-email privacy/provider review is required before Gmail content is used.
+Future live evaluation uses a new explicit request budget. Phase 3 persistence is now
+verified; real-email privacy/provider review is required before Gmail content is used.
 
 ---
 
 # Phase 3 — Database Design & Persistence
 
 
-**Status:** In Progress — ORM and Migration Scaffolding Only; No Live Database or Tables
+**Status:** Complete — Neon Migration and Repository Tests Verified
 
 ## Objective
 
@@ -572,65 +573,86 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 
 ### 3.1 Neon Setup
 
-- [ ] Create a Neon account.
-- [ ] Create a PostgreSQL project.
-- [ ] Obtain the database connection strings.
-- [ ] Configure pooled database connection.
-- [ ] Configure direct database connection for migrations.
-- [ ] Add database environment variables.
-- [ ] Verify database connectivity.
+- [x] Create a Neon account.
+- [x] Create a PostgreSQL project.
+- [x] Obtain the database connection strings.
+- [x] Configure pooled database connection.
+- [x] Configure direct database connection for migrations.
+- [x] Add database environment variables.
+- [x] Verify database connectivity.
 
 ### 3.2 SQLAlchemy Setup
 
 - [x] Install SQLAlchemy.
 - [x] Install a compatible PostgreSQL driver (psycopg).
 - [x] Configure a lazy SQLAlchemy engine factory with PostgreSQL URL normalization.
-- [x] Configure a database session factory (no persistence workflows yet).
+- [x] Configure a database session factory with service-owned transactions.
 - [x] Document transaction-scoped session usage in `README.md`.
-- [ ] Test a basic database query.
+- [x] Test a basic database query.
 
 ### 3.3 Database Models
 
-- [ ] Create the `users` model.
-- [ ] Create the `gmail_connections` model.
-- [ ] Create the `emails` model.
-- [ ] Create the `email_analyses` model.
-- [ ] Create the `action_items` model.
-- [ ] Define foreign key relationships.
-- [ ] Define unique constraints.
-- [ ] Define useful indexes.
+- [x] Create the `users` model.
+- [x] Create the `gmail_connections` model.
+- [x] Create the `emails` model.
+- [x] Create the `email_analyses` model.
+- [x] Create the `action_items` model.
+- [x] Define foreign key relationships.
+- [x] Define unique constraints.
+- [x] Define useful indexes.
 
 ### 3.4 Database Migrations
 
 - [x] Install Alembic.
 - [x] Initialize Alembic configuration and an empty revision directory.
-- [x] Configure Alembic to read `DIRECT_DATABASE_URL` (live credentials and connectivity pending).
-- [ ] Generate the initial migration.
-- [ ] Review migration changes.
-- [ ] Apply the migration.
-- [ ] Verify that tables were created successfully.
+- [x] Configure Alembic to read `DIRECT_DATABASE_URL` (live connectivity verified).
+- [x] Generate the initial migration.
+- [x] Review migration changes.
+- [x] Apply the migration.
+- [x] Verify that tables were created successfully.
 
 ### 3.5 Repository Layer
 
-- [ ] Implement user persistence.
-- [ ] Implement Gmail connection persistence.
-- [ ] Implement email persistence.
-- [ ] Implement analysis persistence.
-- [ ] Implement action-item persistence.
-- [ ] Add duplicate prevention.
-- [ ] Add user ownership filtering.
-- [ ] Test database transactions.
+- [x] Implement user persistence.
+- [x] Implement Gmail connection persistence.
+- [x] Implement email persistence.
+- [x] Implement analysis persistence.
+- [x] Implement action-item persistence.
+- [x] Add duplicate prevention.
+- [x] Add user ownership filtering.
+- [x] Test database transactions.
 
 ## Phase Completion Checklist
 
-- [ ] Flask connects to Neon.
-- [ ] Database tables exist.
-- [ ] SQLAlchemy models work.
-- [ ] Alembic migrations work.
-- [ ] Records can be created and retrieved.
-- [ ] Duplicate email records are prevented.
+- [x] Flask connects to Neon.
+- [x] Database tables exist.
+- [x] SQLAlchemy models work.
+- [x] Alembic migrations work.
+- [x] Records can be created and retrieved.
+- [x] Duplicate email records are prevented.
 
 **Deliverable:** Persistent database and repository layer.
+
+## Phase 3 Verification
+
+Migration `0001` was reviewed and applied to the user's empty Neon development database.
+Both URLs target the same endpoint/database: pooled application URL and direct migration URL.
+Five domain tables plus `alembic_version` exist. No local PostgreSQL or separate test URL is used.
+
+- Offline suite: 82 passed, six Neon tests skipped.
+- Explicit Neon suite: all 88 tests passed with `--run-db-tests`.
+- Tests cover persistence, duplicate constraints, ownership, analysis history, action status,
+  savepoint rollback, and cascading deletion. Synthetic writes are rolled back, including
+  service-style commits inside the fixture's outer transaction.
+- Offline tests compare migration columns/constraints/indexes with model metadata and render
+  upgrade/downgrade SQL. No migration downgrade was executed against Neon.
+- Alembic reports no schema drift; all five domain tables contain zero rows after tests.
+- Flask's pooled database connection, Ruff lint, and formatting checks passed.
+
+Commands and repository usage are documented in `README.md`. Phase 4 will connect OAuth
+users and encrypted credentials to these repositories; Phase 5 will persist synchronized
+emails and validated AI results. No new endpoints or frontend changes were introduced.
+The development analysis endpoint remains stateless.
 
 ---
 
@@ -1353,6 +1375,9 @@ rules remain in the shared references; phase-specific verification is recorded b
   Configured the model locally; all 80 backend tests and required checks passed.
   The user also confirmed manual testing passed. See the
   [Phase 2 guide](#phase-2-analysis-and-testing-guide) for full findings and limitations.
+- **Phase 3:** Added five SQLAlchemy models and ownership-scoped repositories; reviewed and
+  applied migration `0001` to Neon. All 88 tests passed, including six explicitly enabled
+  rollback-only Neon tests. Alembic reports no schema drift; no test rows remain.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1363,13 +1388,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 3 — Database Design & Persistence (next; scaffold only)  
-**Current Status:** Phases 0, 1, and 2 Complete; Homepage Demo and Synthetic AI Analysis Available; Gmail, Persistence, and Dashboard Features Pending
+**Current Phase:** Phase 4 — Google OAuth & Gmail Integration (next)\
+**Current Status:** Phases 0 through 3 Complete; Neon Persistence Verified; Gmail, Live Processing Pipeline, and Dashboard Features Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.8  
+**Document Version:** 1.9\
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026
