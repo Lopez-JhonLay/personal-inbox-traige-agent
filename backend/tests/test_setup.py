@@ -46,7 +46,7 @@ def test_openrouter_client_configuration() -> None:
     settings = Settings(_env_file=None, openrouter_api_key="test-key")
     with create_openrouter_client(settings) as client:
         assert str(client.base_url) == "https://openrouter.ai/api/v1/"
-        assert client.max_retries == 2
+        assert client.max_retries == 0
 
 
 def test_google_clients_construct_without_network_calls() -> None:

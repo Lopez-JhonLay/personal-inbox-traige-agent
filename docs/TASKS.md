@@ -1,9 +1,12 @@
 # Mailkind
 
-## Development Phases & Task Tracker
+## Development Roadmap
 
-**Version:** 1.4  
-**Status:** In Progress — Phases 0 and 1 Complete; Phase 2 Pending Feature Work  
+Detailed checklists are linked under [Overall Progress](#overall-progress).
+Key milestones are recorded in [Development History](#development-history).
+
+**Version:** 1.8  
+**Status:** In Progress — Phases 0, 1, and 2 Complete; Phase 3 Next  
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -37,9 +40,9 @@ and project documentation use this name. The existing GitHub repository URL and
 local folder name are retained.
 
 The initial project skeleton and dependencies are installed and locked. Verified:
-frontend build, Biome/Prettier, Python Ruff checks, 12 backend tests,
+frontend build, Biome/Prettier, Python Ruff checks, 80 backend tests,
 `GET /api/health`, and the Vite-to-Flask proxy. External client construction is tested
-locally; no live Gmail, OpenRouter, or Neon connection has been verified.
+locally; live OpenRouter synthetic requests have succeeded. Gmail and Neon remain unverified.
 
 Git is initialized on `main`. The user supplied the GitHub repository at
 `git@github.com:Lopez-JhonLay/personal-inbox-traige-agent.git`; it is configured as
@@ -68,6 +71,15 @@ tokens, base typography, responsive layout primitives, and control/link/surface 
 are implemented and documented in `DESIGN_SYSTEM.md`. This does not complete the
 remaining frontend UI or application-feature work.
 
+Phase 2 implements the gated development analysis endpoint, strict Pydantic schemas,
+versioned untrusted-input prompt, and bounded AI retries. The OpenRouter account and
+local key are configured. Initial free-router evaluations used 20 synthetic requests
+and exposed invalid outputs and draft commitments. The subsequent fixed ERNIE model
+passed all eight cases and manual review in nine requests, including one rate limit.
+`baidu/ernie-5.5-flash-preview:free` is now selected. Phase 2 is complete for synthetic
+analysis; Gmail, persistence, and real-email privacy review remain later work.
+See [Phase 2 guide](#phase-2-analysis-and-testing-guide) for findings and limitations.
+
 Only individually completed tasks are checked below. Client factories and environment
 placeholders do not count as completed auth flows, live integrations, or persistence.
 Phase completion requires all remaining work, including error handling, UI, or security
@@ -76,29 +88,30 @@ that those features or the full MVP are complete.
 
 ### Overall Progress
 
-- [x] Phase 0 — Development Environment & Project Setup
-- [x] Phase 1 — Flask Backend Foundation
-- [ ] Phase 2 — AI Integration & Email Analysis
-- [ ] Phase 3 — Database Design & Persistence
-- [ ] Phase 4 — Google OAuth & Gmail Integration
-- [ ] Phase 5 — Email Synchronization & AI Pipeline
-- [ ] Phase 6 — React Frontend Foundation
-- [ ] Phase 7 — Dashboard & Email Management
-- [ ] Phase 8 — Action Tracking & Reply Drafts
-- [ ] Phase 9 — Testing, AI Evaluation & Security
-- [ ] Phase 10 — Deployment & Final Validation
+- [x] [Phase 0 — Development Environment & Project Setup](#phase-0--development-environment--project-setup)
+- [x] [Phase 1 — Flask Backend Foundation](#phase-1--flask-backend-foundation)
+- [x] [Phase 2 — AI Integration & Email Analysis](#phase-2--ai-integration--email-analysis)
+- [ ] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
+- [ ] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
+- [ ] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
+- [ ] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
+- [ ] [Phase 7 — Dashboard & Email Management](#phase-7--dashboard--email-management)
+- [ ] [Phase 8 — Action Tracking & Reply Drafts](#phase-8--action-tracking--reply-drafts)
+- [ ] [Phase 9 — Testing, AI Evaluation & Security](#phase-9--testing-ai-evaluation--security)
+- [ ] [Phase 10 — Deployment & Final Validation](#phase-10--deployment--final-validation)
 
 ---
 
 # Phase 0 — Development Environment & Project Setup
 
+
 **Status:** Complete — Development Tools, Workspace Configuration, and Git Setup Verified
 
-### Objective
+## Objective
 
 Prepare the local development environment, initialize the project, and configure the tools required for development.
 
-### Learning Goals
+## Learning Goals
 
 - Understand the project's technology stack.
 - Understand frontend/backend separation.
@@ -106,9 +119,9 @@ Prepare the local development environment, initialize the project, and configure
 - Understand environment variables.
 - Establish a clean Git workflow.
 
-### Tasks
+## Tasks
 
-#### 0.1 Development Tools
+### 0.1 Development Tools
 
 - [x] Install or verify Git.
 - [x] Install or verify Node.js LTS.
@@ -128,7 +141,7 @@ Prepare the local development environment, initialize the project, and configure
 - [x] Configure format-on-save, project-local tools, backend imports, and pytest discovery.
 - [x] Track shared workspace settings and extension recommendations while ignoring other local editor files.
 
-#### 0.2 Project Initialization
+### 0.2 Project Initialization
 
 - [x] Create the project root directory.
 - [x] Initialize a Git repository.
@@ -145,7 +158,7 @@ Prepare the local development environment, initialize the project, and configure
 - [x] Create an initial `README.md`.
 - [x] Add contributor instructions in `AGENTS.md` and shared `.editorconfig` conventions.
 
-#### 0.3 Git Configuration
+### 0.3 Git Configuration
 
 - [x] Confirm repository-local personal Git username, email, and SSH key settings.
 - [x] Configure `.gitignore` for Node.js, Python, virtual environments, and secret files.
@@ -153,7 +166,7 @@ Prepare the local development environment, initialize the project, and configure
 - [x] Create the initial Git commit.
 - [x] Push the initial commit to GitHub.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [x] All required development tools are installed; configured paths and command-line checks pass.
 - [x] Project folder structure is initialized.
@@ -167,13 +180,14 @@ Prepare the local development environment, initialize the project, and configure
 
 # Phase 1 — Flask Backend Foundation
 
+
 **Status:** Complete — Flask Foundation and Basic API Error Handling Verified
 
-### Objective
+## Objective
 
 Create a functional Flask REST API that will serve as the backend foundation.
 
-### Learning Goals
+## Learning Goals
 
 - Understand how Flask handles HTTP requests.
 - Understand REST APIs.
@@ -182,9 +196,9 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - Learn request and response handling.
 - Understand layered backend architecture.
 
-### Tasks
+## Tasks
 
-#### 1.1 Python Environment
+### 1.1 Python Environment
 
 - [x] Navigate to `backend/`.
 - [x] Create a Python virtual environment.
@@ -196,7 +210,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Create `.env.example`.
 - [x] Confirm that the Flask application runs locally.
 
-#### 1.2 Backend Structure
+### 1.2 Backend Structure
 
 - [x] Create the `app/` package.
 - [x] Create the Flask application factory.
@@ -209,7 +223,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Create the `utils/` directory.
 - [x] Register the health Blueprint (feature Blueprints remain unimplemented).
 
-#### 1.3 First API Endpoint
+### 1.3 First API Endpoint
 
 - [x] Create `GET /api/health`.
 - [x] Return a structured JSON response.
@@ -217,7 +231,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Verify the health endpoint returns HTTP 200.
 - [x] Configure application-wide JSON HTTP error handling, including safe 500 responses and preserved protocol headers.
 
-#### 1.4 Code Quality Setup
+### 1.4 Code Quality Setup
 
 - [x] Install and configure Ruff.
 - [x] Install and configure Pytest.
@@ -226,7 +240,7 @@ Create a functional Flask REST API that will serve as the backend foundation.
 - [x] Run formatting and linting checks.
 - [x] Run backend tests successfully (five setup tests and seven API error-handling tests).
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [x] Flask runs without errors.
 - [x] Health endpoint returns a successful response.
@@ -241,13 +255,14 @@ Create a functional Flask REST API that will serve as the backend foundation.
 
 # Phase 2 — AI Integration & Email Analysis
 
-**Status:** In Progress — SDK and Client Factory Only; No Live Inference
 
-### Objective
+**Status:** Complete — Fixed Free Model Passed Synthetic Evaluation and Manual Review
+
+## Objective
 
 Integrate a free AI model through OpenRouter and create an email analysis service using sample data.
 
-### Learning Goals
+## Learning Goals
 
 - Understand LLM inference.
 - Understand system and user prompts.
@@ -258,96 +273,293 @@ Integrate a free AI model through OpenRouter and create an email analysis servic
 - Learn Pydantic validation.
 - Understand AI hallucinations and prompt injection.
 
-### Tasks
+## Tasks
 
-#### 2.1 OpenRouter Setup
+### 2.1 OpenRouter Setup
 
-- [ ] Create an OpenRouter account.
-- [ ] Explore available free AI models.
-- [ ] Compare candidate models for email analysis.
-- [ ] Review model/provider privacy and data retention policies.
-- [ ] Select an initial free model.
-- [ ] Generate an OpenRouter API key.
-- [ ] Add `OPENROUTER_API_KEY` to the backend environment.
-- [ ] Add `OPENROUTER_MODEL` to the backend environment.
+- [x] Create an OpenRouter account.
+- [x] Explore available free AI models.
+- [x] Compare candidate models for email analysis.
+- [x] Review model/provider privacy and data retention policies.
+- [x] Select an initial free model.
+- [x] Generate an OpenRouter API key.
+- [x] Add `OPENROUTER_API_KEY` to the backend environment.
+- [x] Add `OPENROUTER_MODEL` to the backend environment.
 - [x] Install the OpenAI Python SDK.
-- [x] Configure the SDK client factory to use OpenRouter (no live request).
-- [ ] Make a successful test request using synthetic text.
+- [x] Configure the SDK client factory to use OpenRouter.
+- [x] Make a successful test request using synthetic text.
 
-#### 2.2 Email Analysis Design
+### 2.2 Email Analysis Design
 
-- [ ] Define the expected email analysis output.
-- [ ] Define email categories.
-- [ ] Define priority classification rules.
-- [ ] Define requested-action extraction rules.
-- [ ] Define deadline extraction rules.
-- [ ] Define reply-needed detection rules.
-- [ ] Define suggested reply behavior.
+- [x] Define the expected email analysis output.
+- [x] Define email categories.
+- [x] Define priority classification rules.
+- [x] Define requested-action extraction rules.
+- [x] Define deadline extraction rules.
+- [x] Define reply-needed detection rules.
+- [x] Define suggested reply behavior.
 
-#### 2.3 Pydantic Schema
+### 2.3 Pydantic Schema
 
-- [ ] Create an email input schema.
-- [ ] Create an email analysis response schema.
-- [ ] Define allowed category values.
-- [ ] Define allowed priority values.
-- [ ] Support optional and nullable fields.
-- [ ] Add appropriate field validation.
-- [ ] Test valid and invalid model responses.
+- [x] Create an email input schema.
+- [x] Create an email analysis response schema.
+- [x] Define allowed category values.
+- [x] Define allowed priority values.
+- [x] Support optional and nullable fields.
+- [x] Add appropriate field validation.
+- [x] Test valid and invalid model responses.
 
-#### 2.4 Prompt Engineering
+### 2.4 Prompt Engineering
 
-- [ ] Create the initial system prompt.
-- [ ] Define the email analysis instructions.
-- [ ] Define the expected output format.
-- [ ] Include rules for missing information.
-- [ ] Include rules against invented facts.
-- [ ] Treat email content as untrusted data.
-- [ ] Include timestamp and timezone context for relative dates.
-- [ ] Test prompts using different sample emails.
+- [x] Create the initial system prompt.
+- [x] Define the email analysis instructions.
+- [x] Define the expected output format.
+- [x] Include rules for missing information.
+- [x] Include rules against invented facts.
+- [x] Treat email content as untrusted data.
+- [x] Include timestamp and timezone context for relative dates.
+- [x] Test prompts using different sample emails.
 
-#### 2.5 AI Service Implementation
+### 2.5 AI Service Implementation
 
-- [x] Create `ai_service.py` with a client factory, timeout, and bounded SDK retries only.
-- [ ] Implement the AI API request.
-- [ ] Parse the model response.
-- [ ] Validate the result using Pydantic.
-- [ ] Handle malformed responses.
-- [ ] Handle API errors and timeouts.
-- [ ] Handle rate limits.
-- [ ] Add limited retry behavior.
-- [ ] Keep the AI model configurable.
+- [x] Create `ai_service.py` with a client factory, timeout, and bounded service retries; SDK retries disabled.
+- [x] Implement the AI API request.
+- [x] Parse the model response.
+- [x] Validate the result using Pydantic.
+- [x] Handle malformed responses.
+- [x] Handle API errors and timeouts.
+- [x] Handle rate limits.
+- [x] Add limited retry behavior.
+- [x] Keep the AI model configurable.
 
-#### 2.6 Analysis Endpoint
+### 2.6 Analysis Endpoint
 
-- [ ] Create a development analysis endpoint.
-- [ ] Accept a sample email request.
-- [ ] Call the AI service.
-- [ ] Return the validated analysis as JSON.
-- [ ] Test using multiple synthetic sample emails.
-- [ ] Restrict or remove the development endpoint before production deployment.
+- [x] Create a development analysis endpoint.
+- [x] Accept a sample email request.
+- [x] Call the AI service.
+- [x] Return the validated analysis as JSON.
+- [x] Test using multiple synthetic sample emails.
+- [x] Restrict or remove the development endpoint before production deployment.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
-- [ ] OpenRouter connection works.
-- [ ] Sample emails can be analyzed.
-- [ ] AI returns structured output.
-- [ ] Pydantic validation works.
-- [ ] Invalid outputs are handled.
-- [ ] AI failures do not crash the API.
+- [x] Pass controlled model evaluation and manual quality review; see [analysis and testing guide](#phase-2-analysis-and-testing-guide).
+
+- [x] OpenRouter connection works.
+- [x] Sample emails can be analyzed.
+- [x] AI returns structured output.
+- [x] Pydantic validation works.
+- [x] Invalid outputs are handled.
+- [x] AI failures do not crash the API.
 
 **Deliverable:** Working AI-powered email analysis endpoint.
+
+## Guide and Manual Verification
+
+See the [analysis and testing guide](#phase-2-analysis-and-testing-guide) for configuration, requests, and
+evaluation findings. The user confirmed manual testing passed on November 16, 2026.
+
+## Phase 2 Analysis and Testing Guide
+
+
+Run all commands below from the repository root.
+
+Mailkind analyzes one supplied plain-text email with OpenRouter. This is a local
+development integration for synthetic examples, without Gmail access, storage,
+authentication, autonomous actions, or frontend integration.
+
+### Configuration and model choice
+
+Set these values in the existing ignored `backend/.env`, then restart Flask:
+
+```dotenv
+OPENROUTER_API_KEY=your-local-key
+OPENROUTER_MODEL=baidu/ernie-5.5-flash-preview:free
+ENABLE_DEV_ANALYSIS=true
+```
+
+Keep keys in the backend. The endpoint does not exist when the flag is false, which
+is the default. Use Flask bound to localhost; the development endpoint is unauthenticated
+and should stay disabled outside local development.
+
+The selected model is
+[ERNIE-5.5-Flash-Preview (free)](https://openrouter.ai/baidu/ernie-5.5-flash-preview:free).
+On November 16, 2026, OpenRouter listed zero input/output prices, JSON Schema support,
+and one serving provider (Baidu). It passed the eight synthetic cases and manual review
+below. This is a small initial acceptance set, not a claim that it is the best model
+or that it is ready for real email. The model alias/provider implementation may evolve.
+
+The [free router](https://openrouter.ai/docs/guides/routing/routers/free-router) was
+evaluated first but produced inconsistent quality across models. It remains an explicit
+evaluation option. `model` in the API response identifies the actual model. GPT-5.6 Sol
+was considered but is paid. No automatic model fallback is configured.
+
+As checked November 16, 2026, [free-model limits](https://openrouter.ai/collections/free-models)
+are 20 requests/minute and 50/day across the account, rising to 1,000/day after
+purchasing at least $10 in credits. Failed attempts and retries can consume capacity;
+the app does not maintain a separate authoritative account-quota counter.
+
+### Request and response
+
+Start the backend from the repository root:
+
+```powershell
+uv run --project backend flask --app backend/run.py run --debug --port 5000
+```
+
+In a separate PowerShell terminal:
+
+```powershell
+$sampleEmail = @{
+  subject = 'Project feedback'
+  sender = 'Maya <maya@example.test>'
+  body = 'Please review the draft by tomorrow, November 17, 2026. Please reply with comments.'
+  received_at = '2026-11-16T09:00:00+08:00'
+  timezone = 'Asia/Manila'
+} | ConvertTo-Json
+Invoke-RestMethod http://localhost:5000/api/dev/analyze `
+  -Method Post -ContentType 'application/json' -Body $sampleEmail
+```
+
+The subject can be empty; sender can be absent or null. Body must be nonblank plain
+text. Limits: subject 500 characters, sender 320, body 20,000, request 128 KiB.
+`received_at` requires a UTC offset and `timezone` requires an IANA name. Unknown
+fields are rejected. HTML normalization belongs to the future Gmail pipeline.
+
+Success uses `{success: true, data: {analysis, model, prompt_version, usage}}`.
+`usage` contains prompt/completion/total token counts when available, otherwise null.
+Analysis requires every architecture field: summary, category, priority, deadline,
+deadline_text, requested_action, suggested_action, reply_needed, and draft_reply.
+Missing facts use null. Categories follow the PRD, including plural `Newsletters`.
+
+Summary: 1–2 sentences, capped at 500 characters. Other action text is capped at
+2,000 characters, drafts at 4,000, and deadline wording at 500. Extracted deadline
+wording must occur in the source subject/body (ignoring case and whitespace).
+Priority depends on consequential urgency, not keywords.
+Relative dates use the received timestamp and user timezone; priority also considers
+current time. Ambiguous phrases such as an unspecified Friday retain `deadline_text`
+without a guessed date. Drafts avoid invented commitments and are null when no reply
+is needed. These are prompt rules plus structural validation, not factual guarantees.
+
+### Failure handling and privacy
+
+Errors retain `{success: false, error: {code, message}}`. Invalid requests return
+400, oversized requests 413, unsupported content types 415, provider rate limits 429,
+unavailable configuration/credentials/capacity 503, exhausted timeouts 504, and
+invalid/refused model output 502. Valid `Retry-After` values are preserved.
+
+The service has a 30-second timeout per attempt and at most two attempts overall,
+with one second between attempts. SDK retries are disabled. Only connection errors,
+timeouts, provider 5xx errors, and invalid output are retried. Rate limits and refusals
+return immediately. A malformed result is requested again without returning its content
+to the model. Health checks never contact OpenRouter.
+
+Prompt version `email-analysis-v2` treats all email fields as untrusted data. No tools
+are supplied. Application logs contain model/version/token metadata and safe error
+codes, never bodies, drafts, API keys, or raw provider errors.
+
+Review [OpenRouter privacy](https://openrouter.ai/privacy) and
+[provider logging policies](https://openrouter.ai/docs/guides/privacy/provider-logging).
+Provider training and retention policies vary. Separate free-model account privacy
+settings can restrict training-enabled providers and may reduce availability. Free
+routing does not guarantee zero retention; provider-specific review remains necessary
+before real email processing. This phase uses only synthetic fixtures.
+
+### Verification
+
+```powershell
+uv run --project backend pytest backend/tests
+uv run --project backend ruff check backend
+uv run --project backend ruff format --check backend
+```
+
+Routine tests use mocked HTTP transports and never make inference requests. The
+installed SDK uses `httpx2`; tests use its existing mock transport without another
+HTTP dependency. `tzdata` is explicitly pinned for IANA timezone support on Windows.
+
+The opt-in evaluation sends synthetic fixtures and makes at most ten requests per run:
+
+```powershell
+uv run --project backend python backend/scripts/evaluate_analysis.py `
+  --model baidu/ernie-5.5-flash-preview:free --max-requests 10
+```
+
+Eight cases cover work, billing, meetings, personal mail, newsletters, promotions,
+ambiguous dates, and prompt injection. Two extra requests can recheck failures. Every
+attempt is counted; SDK/service retries are disabled inside this runner. It stops on
+rate limits or unavailable configuration/capacity. Re-running spends a new budget.
+The evaluation uses a fixed November 16, 2026 reference time for reproducible urgency.
+
+The JSON report includes actual models, outputs, expected-field mismatches, and attempt
+history. A zero exit code means all expected fields matched, not that manual review
+passed. Inspect summaries, amounts, dates, actions, drafts, and injection handling
+before marking Phase 2 complete. Keep generated reports in ignored `.cache/`.
+
+Only the fixed ERNIE model and `openrouter/free` are allowed by the runner; arbitrary
+models, including paid models, are rejected. `--model` overrides the evaluation only,
+without editing `.env`. Checks include required non-null actions for actionable cases.
+To resume selected cases after a rate limit, use repeated `--case` flags and set
+`--max-requests` to the remaining authorized budget. Each invocation has its own cap;
+budgets do not automatically carry across runs. The report records valid `Retry-After`
+values, when supplied. Do not automatically retry 429 responses.
+
+```powershell
+uv run --project backend python backend/scripts/evaluate_analysis.py `
+  --model baidu/ernie-5.5-flash-preview:free --max-requests 5 `
+  --case newsletter --case promotion --case ambiguous-date --case prompt-injection
+```
+
+### Evaluation findings — November 16, 2026
+
+**Phase 2 is complete for synthetic-email analysis.** The first two approved batches
+used 20 requests and exposed quality failures. The subsequent fixed-model round used
+nine requests within its ten-request cap, bringing the total to 29 synthetic requests.
+
+| Batch | Configuration | Automated result | Manual review |
+| --- | --- | --- | --- |
+| Initial | Prompt v1, 2,000 output tokens | 6/8 expected-field matches after 10 attempts | Work and meeting drafts made unsupported commitments. Injection had no usable output. One deadline mismatch was harmless source phrasing: `by Friday` versus `Friday`. |
+| Revised | Prompt v2, 4,096 output tokens | 6/8 expected-field matches after 10 attempts | Draft commitments improved, but billing omitted the requested action and rewrote deadline wording; an ambiguous-date summary contained serialization artifacts. Promotion and injection still lacked usable output. |
+| Fixed ERNIE | Prompt v2, final stricter validation, 4,096 output tokens | 8/8 cases passed across nine attempts | All eight manually reviewed outputs passed: source dates/amounts/actions preserved, ambiguous Friday remained undated, drafts made no commitments, injection instructions were ignored. One request hit 429; a later run resumed only the four unfinished cases. |
+
+Observed models included `nvidia/nemotron-3.5-super-vl:free`,
+`baidu/ernie-5.5-flash-preview:free`, and `liquid/lfm-3-1.7b:free`.
+This small, varying-model sample does not establish comparative model quality.
+Invalid-output failures were handled safely, but the original report did not distinguish
+truncation from schema failures; it would be incorrect to attribute all failures to
+truncation. Later failures now include a safe reason code in logs/evaluation reports.
+
+After those evaluations, validation was tightened to reject deadline wording absent
+from the email and summaries above 500 characters. These guards and the revised
+service pass mocked tests and were used in the successful fixed-model evaluation.
+The stored 6/8 counts describe the earlier configurations, not the final stricter schema.
+Reports are local ignored files: `.cache/phase2-evaluation.json` and
+`.cache/phase2-evaluation-v2.json` (PowerShell redirection produced UTF-16 JSON).
+
+The controlled round used `baidu/ernie-5.5-flash-preview:free` throughout. Four cases
+passed initially; the fifth request (newsletter) was rate limited and the runner stopped.
+After a cooldown, the remaining four cases passed in four requests. Key metadata
+confirmed a free-tier account but did not establish the cause or reset time of that
+rate limit. This evaluation does not establish sustained throughput or production quality.
+
+Reports: `.cache/phase2-evaluation-fixed-ernie.json` and
+`.cache/phase2-evaluation-fixed-ernie-resume.json` (UTF-16 JSON). The selected model is
+now configured in Settings, the environment example, and local `.env`. There are 80
+passing backend tests; Ruff and frontend lint/format/build checks also passed.
+Future live evaluation uses a new explicit request budget. Phase 3 persistence remains
+the next phase; real-email privacy/provider review is required before Gmail content is used.
 
 ---
 
 # Phase 3 — Database Design & Persistence
 
+
 **Status:** In Progress — ORM and Migration Scaffolding Only; No Live Database or Tables
 
-### Objective
+## Objective
 
 Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 
-### Learning Goals
+## Learning Goals
 
 - Understand ORM concepts.
 - Learn SQLAlchemy models and relationships.
@@ -356,9 +568,9 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - Understand transactions.
 - Learn secure database connections.
 
-### Tasks
+## Tasks
 
-#### 3.1 Neon Setup
+### 3.1 Neon Setup
 
 - [ ] Create a Neon account.
 - [ ] Create a PostgreSQL project.
@@ -368,7 +580,7 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - [ ] Add database environment variables.
 - [ ] Verify database connectivity.
 
-#### 3.2 SQLAlchemy Setup
+### 3.2 SQLAlchemy Setup
 
 - [x] Install SQLAlchemy.
 - [x] Install a compatible PostgreSQL driver (psycopg).
@@ -377,7 +589,7 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - [x] Document transaction-scoped session usage in `README.md`.
 - [ ] Test a basic database query.
 
-#### 3.3 Database Models
+### 3.3 Database Models
 
 - [ ] Create the `users` model.
 - [ ] Create the `gmail_connections` model.
@@ -388,7 +600,7 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - [ ] Define unique constraints.
 - [ ] Define useful indexes.
 
-#### 3.4 Database Migrations
+### 3.4 Database Migrations
 
 - [x] Install Alembic.
 - [x] Initialize Alembic configuration and an empty revision directory.
@@ -398,7 +610,7 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - [ ] Apply the migration.
 - [ ] Verify that tables were created successfully.
 
-#### 3.5 Repository Layer
+### 3.5 Repository Layer
 
 - [ ] Implement user persistence.
 - [ ] Implement Gmail connection persistence.
@@ -409,7 +621,7 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 - [ ] Add user ownership filtering.
 - [ ] Test database transactions.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] Flask connects to Neon.
 - [ ] Database tables exist.
@@ -424,13 +636,14 @@ Set up Neon PostgreSQL and implement persistent data storage using SQLAlchemy.
 
 # Phase 4 — Google OAuth & Gmail Integration
 
+
 **Status:** In Progress — Client Factories Only; Authorization and Retrieval Pending
 
-### Objective
+## Objective
 
 Allow users to securely connect their Gmail account and retrieve real emails.
 
-### Learning Goals
+## Learning Goals
 
 - Understand OAuth 2.0.
 - Understand authorization scopes.
@@ -439,9 +652,9 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 - Learn secure session management.
 - Understand API permissions and rate limits.
 
-### Tasks
+## Tasks
 
-#### 4.1 Google Cloud Setup
+### 4.1 Google Cloud Setup
 
 - [ ] Create a Google Cloud project.
 - [ ] Enable the Gmail API.
@@ -452,7 +665,7 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 - [ ] Configure authorized redirect URIs.
 - [ ] Store Google credentials in backend environment variables.
 
-#### 4.2 OAuth Backend
+### 4.2 OAuth Backend
 
 - [x] Install required Google authentication libraries.
 - [x] Add a Google OAuth Flow factory using the read-only Gmail scope (no authorization exchange).
@@ -466,7 +679,7 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 - [ ] Implement secure token refresh.
 - [ ] Handle failed or denied authorization.
 
-#### 4.3 Gmail Service
+### 4.3 Gmail Service
 
 - [x] Create `gmail_service.py`.
 - [x] Configure a Gmail API client factory accepting caller-supplied credentials.
@@ -481,7 +694,7 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 - [ ] Ignore attachment contents for MVP.
 - [ ] Handle Gmail API failures.
 
-#### 4.4 Connection Management
+### 4.4 Connection Management
 
 - [ ] Implement Gmail connection status endpoint.
 - [ ] Implement Gmail disconnect endpoint.
@@ -490,7 +703,7 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 - [ ] Define handling of previously synchronized data.
 - [ ] Verify authorization is required for protected endpoints.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] User can connect Gmail.
 - [ ] OAuth flow works securely.
@@ -505,13 +718,14 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 
 # Phase 5 — Email Synchronization & AI Pipeline
 
+
 **Status:** Not Started
 
-### Objective
+## Objective
 
 Connect Gmail retrieval, email storage, AI analysis, and database persistence into one working pipeline.
 
-### Learning Goals
+## Learning Goals
 
 - Understand service orchestration.
 - Learn data transformation pipelines.
@@ -519,9 +733,9 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 - Learn processing states and retries.
 - Understand API rate-limit management.
 
-### Tasks
+## Tasks
 
-#### 5.1 Email Synchronization
+### 5.1 Email Synchronization
 
 - [ ] Create an email synchronization service.
 - [ ] Implement `POST /api/emails/sync`.
@@ -531,7 +745,7 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 - [ ] Save only new messages.
 - [ ] Return synchronization results.
 
-#### 5.2 AI Processing Pipeline
+### 5.2 AI Processing Pipeline
 
 - [ ] Retrieve unprocessed emails.
 - [ ] Prepare normalized AI input.
@@ -543,7 +757,7 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 - [ ] Prevent accidental duplicate analysis.
 - [ ] Allow failed messages to be reanalyzed.
 
-#### 5.3 Processing Reliability
+### 5.3 Processing Reliability
 
 - [ ] Limit AI request concurrency.
 - [ ] Handle OpenRouter rate limits.
@@ -553,7 +767,7 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 - [ ] Keep processing batches within deployment time limits.
 - [ ] Return understandable processing statuses.
 
-#### 5.4 Email API Endpoints
+### 5.4 Email API Endpoints
 
 - [ ] Implement `GET /api/emails`.
 - [ ] Implement `GET /api/emails/{id}`.
@@ -563,7 +777,7 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 - [ ] Add priority and category filtering.
 - [ ] Enforce authenticated user ownership.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] Gmail messages are synchronized.
 - [ ] New messages are analyzed.
@@ -578,13 +792,14 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 
 # Phase 6 — React Frontend Foundation
 
+
 **Status:** In Progress — Homepage and Sample Interactions Verified; Live API UI and Server State Pending
 
-### Objective
+## Objective
 
 Initialize React and establish the frontend architecture, API communication, and shared UI components.
 
-### Learning Goals
+## Learning Goals
 
 - Understand React application structure.
 - Learn TanStack Query for server state.
@@ -592,9 +807,9 @@ Initialize React and establish the frontend architecture, API communication, and
 - Learn authenticated API communication.
 - Apply reusable component design.
 
-### Tasks
+## Tasks
 
-#### 6.1 React Setup
+### 6.1 React Setup
 
 - [x] Initialize React with Vite and TypeScript.
 - [x] Configure TypeScript strict mode.
@@ -605,7 +820,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Configure environment variable support and `.env.example` (local credentials not populated).
 - [x] Verify the React development server works.
 
-#### 6.1a Global Design System (Authorized Before Phase 2)
+### 6.1a Global Design System (Authorized Before Phase 2)
 
 - [x] Study the reference site's typography, palette, spacing, layout, controls, and responsive CSS using web research.
 - [x] Define independent semantic Tailwind v4 tokens for typography, color, spacing, widths, breakpoints, radii, and shadows.
@@ -616,7 +831,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Document the design rules and usage examples in `docs/DESIGN_SYSTEM.md`.
 - [x] Study reference animation CSS and add independent, opt-in motion primitives with shared durations/easing, capped stagger, safe inert exits, keyboard access, and reduced-motion defaults.
 
-#### 6.1b First Homepage (Authorized Before Phase 2)
+### 6.1b First Homepage (Authorized Before Phase 2)
 
 - [x] Build a responsive homepage using the global design and motion system.
 - [x] Add navigation, product introduction, walkthrough, details, FAQs, and footer.
@@ -626,7 +841,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Review desktop, mobile, and dialog screenshots and run frontend checks.
 - [x] Refine copy and icon density using the user's selected direction: direct language, one demo notice, fewer labels/decorations, and Lucide React icons.
 
-#### 6.2 Frontend Organization
+### 6.2 Frontend Organization
 
 - [x] Create `components/`.
 - [x] Create `pages/`.
@@ -636,7 +851,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Create `utils/`.
 - [x] Establish consistent naming conventions in `AGENTS.md` and coding guidelines.
 
-#### 6.3 API Integration
+### 6.3 API Integration
 
 - [x] Configure backend API base URL and local Vite proxy.
 - [x] Create a reusable fetch wrapper in `src/services/api.ts`.
@@ -648,7 +863,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [ ] Configure QueryClientProvider.
 - [ ] Create reusable data-fetching hooks.
 
-#### 6.4 Shared UI Components
+### 6.4 Shared UI Components
 
 - [x] Create homepage application layout (live dashboard layout remains pending).
 - [x] Create responsive homepage header/navigation.
@@ -659,7 +874,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [ ] Create error-state components.
 - [x] Establish responsive styling patterns.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [x] React application runs locally with the homepage and fictional inbox preview.
 - [x] Tailwind CSS compiles successfully.
@@ -673,13 +888,14 @@ Initialize React and establish the frontend architecture, API communication, and
 
 # Phase 7 — Dashboard & Email Management
 
+
 **Status:** In Progress — Welcome Homepage and Demo Only; Live Dashboard Pending
 
-### Objective
+## Objective
 
 Build the user-facing dashboard for Gmail connection, email browsing, and AI analysis results.
 
-### Learning Goals
+## Learning Goals
 
 - Learn server-state caching.
 - Understand loading and error states.
@@ -687,9 +903,9 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - Implement filtering and sorting.
 - Understand human-AI interaction design.
 
-### Tasks
+## Tasks
 
-#### 7.1 Welcome & Gmail Connection
+### 7.1 Welcome & Gmail Connection
 
 - [x] Create welcome homepage with a sample inbox (no live Gmail connection).
 - [ ] Add Connect Gmail button.
@@ -698,7 +914,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Handle failed connections.
 - [ ] Handle disconnected accounts.
 
-#### 7.2 Dashboard Overview
+### 7.2 Dashboard Overview
 
 - [ ] Create dashboard page.
 - [ ] Display connected Gmail account.
@@ -709,7 +925,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Display pending-action count.
 - [ ] Add Sync Inbox button.
 
-#### 7.3 Email List
+### 7.3 Email List
 
 - [ ] Create EmailCard component.
 - [ ] Create EmailList component.
@@ -721,7 +937,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Implement pagination.
 - [ ] Add empty and error states.
 
-#### 7.4 Email Filtering
+### 7.4 Email Filtering
 
 - [ ] Filter emails by priority.
 - [ ] Filter emails by category.
@@ -730,7 +946,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Add sorting options.
 - [ ] Keep filters synchronized with API queries.
 
-#### 7.5 Email Detail View
+### 7.5 Email Detail View
 
 - [ ] Display original email content safely.
 - [ ] Display AI summary.
@@ -742,7 +958,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Display optional draft reply.
 - [ ] Add manual reanalysis action.
 
-#### 7.6 Settings
+### 7.6 Settings
 
 - [ ] Display connected Gmail address.
 - [ ] Display timezone settings.
@@ -750,7 +966,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Display confirmation before disconnection.
 - [ ] Handle expired sessions.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] User can navigate the application.
 - [ ] Gmail connection flow works through the UI.
@@ -765,13 +981,14 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 # Phase 8 — Action Tracking & Reply Drafts
 
+
 **Status:** Not Started
 
-### Objective
+## Objective
 
 Allow users to manage recommended actions and review AI-generated reply suggestions.
 
-### Learning Goals
+## Learning Goals
 
 - Understand human-in-the-loop workflows.
 - Learn frontend mutations.
@@ -779,9 +996,9 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 - Build approval-controlled interactions.
 - Learn safe AI-assisted drafting.
 
-### Tasks
+## Tasks
 
-#### 8.1 Action Tracking Backend
+### 8.1 Action Tracking Backend
 
 - [ ] Implement action creation endpoint.
 - [ ] Implement action listing endpoint.
@@ -791,7 +1008,7 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 - [ ] Persist status changes.
 - [ ] Prevent duplicate action creation where appropriate.
 
-#### 8.2 Action Tracker Frontend
+### 8.2 Action Tracker Frontend
 
 - [ ] Create Action Tracker page.
 - [ ] Display pending actions.
@@ -804,7 +1021,7 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 - [ ] Implement Dismissed status.
 - [ ] Update cached queries after mutations.
 
-#### 8.3 Reply Drafts
+### 8.3 Reply Drafts
 
 - [ ] Display AI-generated suggested replies.
 - [ ] Allow user to edit reply text.
@@ -813,7 +1030,7 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 - [ ] Clearly identify AI-generated text.
 - [ ] Avoid unsupported promises in generated replies.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] Users can create action items.
 - [ ] Action statuses persist.
@@ -827,13 +1044,14 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 
 # Phase 9 — Testing, AI Evaluation & Security
 
+
 **Status:** In Progress — Setup Checks Only; Feature Tests and Security Review Pending
 
-### Objective
+## Objective
 
 Validate the application's functionality, AI accuracy, reliability, and security before deployment.
 
-### Learning Goals
+## Learning Goals
 
 - Understand unit and integration testing.
 - Learn AI evaluation techniques.
@@ -841,9 +1059,9 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - Learn prompt injection defenses.
 - Understand authentication and authorization testing.
 
-### Tasks
+## Tasks
 
-#### 9.1 Backend Testing
+### 9.1 Backend Testing
 
 - [x] Test health endpoint.
 - [x] Test configured CORS origins and local construction of database, OpenRouter, and Google clients.
@@ -858,7 +1076,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [x] Test basic API error handling (404, 405, malformed JSON, safe server errors, header preservation, and CORS).
 - [ ] Test feature-specific provider and persistence error handling.
 
-#### 9.2 Frontend Testing
+### 9.2 Frontend Testing
 
 - [ ] Configure Vitest.
 - [ ] Install React Testing Library.
@@ -869,7 +1087,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [ ] Test action status changes.
 - [ ] Test API error handling.
 
-#### 9.3 AI Evaluation
+### 9.3 AI Evaluation
 
 - [ ] Create synthetic evaluation emails.
 - [ ] Include urgent work requests.
@@ -888,7 +1106,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [ ] Review hallucinations and unsupported claims.
 - [ ] Refine prompts based on evaluation results.
 
-#### 9.4 Security Review
+### 9.4 Security Review
 
 - [ ] Verify API keys are backend-only.
 - [ ] Verify OAuth tokens are encrypted.
@@ -902,7 +1120,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [ ] Define stored email retention and deletion behavior.
 - [ ] Review Google OAuth and AI provider policies.
 
-#### 9.5 Code Quality
+### 9.5 Code Quality
 
 - [x] Run Biome lint checks.
 - [x] Run Prettier checks.
@@ -913,7 +1131,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [ ] Fix relevant errors and warnings.
 - [x] Update documentation to reflect the current scaffold and Git setup (MVP documentation remains ongoing).
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] Core functionality is tested.
 - [ ] AI output quality has been evaluated.
@@ -928,13 +1146,14 @@ Validate the application's functionality, AI accuracy, reliability, and security
 
 # Phase 10 — Deployment & Final Validation
 
+
 **Status:** Not Started
 
-### Objective
+## Objective
 
 Deploy the application and validate the complete workflow in its hosted environment.
 
-### Learning Goals
+## Learning Goals
 
 - Understand frontend and backend deployment.
 - Learn production environment configuration.
@@ -942,9 +1161,9 @@ Deploy the application and validate the complete workflow in its hosted environm
 - Learn OAuth production configuration.
 - Understand application monitoring and troubleshooting.
 
-### Tasks
+## Tasks
 
-#### 10.1 Deployment Preparation
+### 10.1 Deployment Preparation
 
 - [ ] Review environment variables.
 - [ ] Configure production secrets.
@@ -954,7 +1173,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Verify local production builds.
 - [ ] Verify all required tests pass.
 
-#### 10.2 Frontend Deployment
+### 10.2 Frontend Deployment
 
 - [ ] Connect GitHub repository to Vercel.
 - [ ] Configure frontend project settings.
@@ -963,7 +1182,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Verify frontend routing.
 - [ ] Verify API connectivity.
 
-#### 10.3 Backend Deployment
+### 10.3 Backend Deployment
 
 - [ ] Configure Flask deployment for Vercel.
 - [ ] Configure backend environment variables.
@@ -973,7 +1192,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Verify production logging.
 - [ ] Verify serverless request limits are acceptable.
 
-#### 10.4 OAuth Production Configuration
+### 10.4 OAuth Production Configuration
 
 - [ ] Configure production OAuth redirect URI.
 - [ ] Update authorized origins where required.
@@ -982,7 +1201,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Test authorization using an approved account.
 - [ ] Verify token refresh and disconnection behavior.
 
-#### 10.5 Database Deployment
+### 10.5 Database Deployment
 
 - [ ] Confirm production Neon database configuration.
 - [ ] Apply reviewed database migrations.
@@ -990,7 +1209,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Verify database ownership rules.
 - [ ] Confirm credentials are stored securely.
 
-#### 10.6 End-to-End Validation
+### 10.6 End-to-End Validation
 
 - [ ] Open deployed application.
 - [ ] Connect Gmail.
@@ -1005,7 +1224,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Test disconnect flow.
 - [ ] Verify no emails are sent or modified automatically.
 
-#### 10.7 Final Documentation
+### 10.7 Final Documentation
 
 - [ ] Update `README.md` with setup instructions.
 - [ ] Document required environment variables.
@@ -1015,7 +1234,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Update architecture decisions where necessary.
 - [ ] Record known limitations.
 
-### Phase Completion Checklist
+## Phase Completion Checklist
 
 - [ ] Frontend is deployed.
 - [ ] Backend is deployed.
@@ -1112,78 +1331,45 @@ The MVP is considered complete when all of the following are satisfied.
 
 ---
 
-# Development Progress Log
+## Development History
 
-Use this section to record development milestones, decisions, and challenges.
+All milestones below were recorded on November 16, 2026. Detailed implementation
+rules remain in the shared references; phase-specific verification is recorded below.
 
-### Date: 2026-11-16
-
-**Phase:** Initial scaffold across Phases 0–4, 6, and 9; feature development remains pending.
-
-**Completed Tasks:**
-
-- Created the frontend/backend structure, environment examples, contributor guide, and configuration.
-- Installed verified stable dependencies with Node LTS support; generated npm/uv lockfiles and pip export.
-- Added the health Blueprint, Pydantic settings, and minimal external client factories.
-- Configured Alembic without revisions or domain tables; kept the React root blank.
-- Initialized Git on `main`, configured personal identity and SSH isolation, and verified the supplied empty remote.
-- Passed frontend lint/format/build, backend lint/format and five tests, and direct/proxied health checks.
-- Completed Phase 0 editor setup: installed Biome 3.8.1, Ruff 2026.96.0, and Microsoft's TypeScript 7 extension 1.0.2; verified existing Python, Pylance, Prettier, and Tailwind extensions.
-- Added shared VS Code settings/recommendations, validated their tool paths, verified pytest discovery, and reran frontend/backend checks successfully.
-- Completed Phase 1 with application-wide JSON error handling, status/header preservation, and generic error messages. Seven new tests cover API failures; all 12 backend tests pass.
-- Corrected the Windows interpreter setting to `backend/.venv/Scripts/python.exe` after Pylance received the `.venv` folder as its executable and failed to resolve installed packages.
-- Added the independently styled global design system before Phase 2: Tailwind tokens, base CSS, responsive primitives, control states, and reference/usage documentation. No reference assets, fonts, branding, or feature pages were added.
-- Subsequently built the first homepage to visualize the system, including a fictional inbox demo, responsive navigation, original icons, Unsplash photo, FAQs, and local interactions. Verified mobile through desktop layouts and browser behavior; live integrations remain pending.
-
-**Solutions or Decisions:**
-
-- Use Biome for TypeScript 7 compatibility and uv for Python environments; no pip installation is required.
-- Keep external credentials unpopulated and model selection pending; setup tests make no live service requests.
-- Preserve work/global Git configuration. Initial commit and push are authorized; deployment is not requested.
-
-**Next Tasks:**
-
-- Begin Phase 2 when requested: select and evaluate a free OpenRouter model and implement the analysis workflow using synthetic data.
-- Reload VS Code if prompted; use **Python: Select Interpreter** if a prior workspace selection overrides the configured default.
-- Proceed with later-phase feature work only within the requested scope.
-
-## Progress Entry Template
-
-### Date: YYYY-MM-DD
-
-**Phase:**  
-**Completed Tasks:**
-
--
-
-**Concepts Learned:**
-
--
-
-**Problems Encountered:**
-
--
-
-**Solutions or Decisions:**
-
--
-
-**Next Tasks:**
-
--
+- **Phase 0:** Initialized the React/Flask stack, locked dependencies, environment
+  examples, contributor guide, and editor configuration. Configured the personal Git
+  identity and SSH key without changing work/global settings.
+- **Phase 1:** Completed health/CORS checks and safe JSON error handling, preserving
+  HTTP status codes and headers. Corrected the Windows interpreter path for Pylance.
+- **Design and homepage:** Added the global design/motion system, responsive fictional
+  inbox demo, Lucide icons, direct copy, and Mailkind branding. Verified responsive
+  layouts and local demo interactions.
+- **Initial Phase 2 evaluation:** Two approved free-router batches used 20 synthetic
+  requests. Both matched 6/8 expected cases but failed manual review; drafts made
+  commitments and some outputs were incomplete or malformed. Tightened the prompt,
+  summary limits, and source-deadline validation.
+- **Phase 2 acceptance:** Fixed `baidu/ernie-5.5-flash-preview:free` passed all eight
+  synthetic cases and manual review in nine requests, including one rate limit.
+  Configured the model locally; all 80 backend tests and required checks passed.
+  The user also confirmed manual testing passed. See the
+  [Phase 2 guide](#phase-2-analysis-and-testing-guide) for full findings and limitations.
+- **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
+  and milestone history in this file. Preserved all 554 original checklist entries
+  and statuses; shared architecture, requirements, coding, and design references
+  remain at the top level.
 
 ---
 
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 2 — AI Integration & Email Analysis (client factory exists; feature work pending)  
-**Current Status:** Phases 0 and 1 Complete; Homepage Demo Available; Live AI, Gmail, Persistence, and Dashboard Features Pending
+**Current Phase:** Phase 3 — Database Design & Persistence (next; scaffold only)  
+**Current Status:** Phases 0, 1, and 2 Complete; Homepage Demo and Synthetic AI Analysis Available; Gmail, Persistence, and Dashboard Features Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.4  
+**Document Version:** 1.8  
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026

@@ -10,7 +10,8 @@ Read `README.md`,
 - `backend/app/`: Flask factory and configuration, with separate `routes/`, `services/`,
   `repositories/`, `models/`, and `schemas/` layers. Keep business logic outside routes.
 - `backend/tests/`: pytest tests. `backend/migrations/`: Alembic configuration and revisions.
-- `docs/`: requirements, architecture, and roadmap.
+- `docs/`: shared references; `TASKS.md` contains all phase checklists, testing guides,
+  overall progress, and milestone history.
 - `.vscode/`: shared workspace settings and extension recommendations.
 
 ## Build, Test, and Development Commands

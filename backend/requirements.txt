@@ -99,8 +99,8 @@ pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementati
     # via cffi
 pydantic==2.14.3
     # via
-    #   openai
     #   mailkind-backend
+    #   openai
     #   pydantic-settings
 pydantic-core==2.50.4
     # via pydantic
@@ -141,8 +141,10 @@ typing-inspection==0.4.5
     # via
     #   pydantic
     #   pydantic-settings
-tzdata==2026.6 ; sys_platform == 'win32'
-    # via psycopg
+tzdata==2026.6
+    # via
+    #   mailkind-backend
+    #   psycopg
 uritemplate==4.2.0
     # via google-api-python-client
 urllib3==2.8.0

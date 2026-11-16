@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     google_client_secret: SecretStr | None = None
     google_redirect_uri: str = "http://localhost:5000/api/auth/google/callback"
     openrouter_api_key: SecretStr | None = None
-    openrouter_model: str | None = None
+    openrouter_model: str = "baidu/ernie-5.5-flash-preview:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    enable_dev_analysis: bool = False
     token_encryption_key: SecretStr | None = None

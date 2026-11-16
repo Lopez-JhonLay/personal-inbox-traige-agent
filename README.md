@@ -7,13 +7,18 @@ name are retained.
 Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
 
 - `frontend/`: React, TypeScript, Vite, Tailwind CSS, and a responsive homepage with an interactive sample inbox.
-- `backend/`: Flask application factory, Pydantic settings, `/api/health`, and JSON error handling.
+- `backend/`: Flask application factory, settings, health/error handling, and an opt-in
+  synthetic-email analysis endpoint with Pydantic-validated OpenRouter results.
 - Integration factories: SQLAlchemy with psycopg for Neon, OpenAI SDK for OpenRouter,
   Google OAuth and a read-only Gmail client.
 - Alembic is configured with empty metadata and no migration revisions.
 
-There are no domain models, application schemas, authentication endpoints, email processing,
-AI analysis workflows, a live inbox dashboard, or deployment configuration.
+There are no database domain models, authentication endpoints, Gmail synchronization,
+live inbox dashboard, or deployment configuration. Phase 2 analyzes supplied plain-text
+synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
+Phase 2 is complete for synthetic-email analysis: the fixed free ERNIE model passed
+all eight evaluation cases and manual review. Real-email privacy review, Gmail access,
+and persistence remain later work; free-model capacity can still be rate limited.
 Client factories do not call external services during application startup.
 
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
@@ -23,6 +28,8 @@ settings use `Lopez-JhonLay`, `jhonlaylopez000@gmail.com`, and the personal
 unchanged. Personal GitHub authentication and remote access were verified.
 See [the task tracker](docs/TASKS.md) for completed setup work and remaining tasks,
 and [the contributor guide](AGENTS.md) for repository conventions.
+The [roadmap](docs/TASKS.md) contains every phase's checklist, the Phase 2 testing
+guide, and project milestones.
 
 Frontend formatting uses Prettier. Biome supplies linting because the current
 `typescript-eslint` release requires TypeScript `<6.1.0`, which excludes the latest
@@ -136,8 +143,13 @@ See each `.env.example` for the complete variable list.
   `GOOGLE_REDIRECT_URI`. Only the `gmail.readonly` scope is configured. The OAuth factory
   does not start authorization, handle callbacks, store credentials, or create sessions.
   The Gmail client requires credentials supplied by the caller.
-- **OpenRouter:** supply an API key. `OPENROUTER_MODEL` is reserved for a selected and
-  evaluated free model; no inference requests or prompts are implemented.
+- **OpenRouter:** supply an API key locally and use
+  `OPENROUTER_MODEL=baidu/ernie-5.5-flash-preview:free`.
+  Set `ENABLE_DEV_ANALYSIS=true` only for local synthetic-email testing. The development
+  endpoint is absent by default. Requests use strict structured output, a 30-second
+  timeout per attempt, and at most two attempts overall; SDK retries are disabled.
+  The selected model is fixed, and no automatic model fallback is configured. See
+  [request examples and evaluation instructions](docs/TASKS.md#phase-2-analysis-and-testing-guide).
 - **Token encryption:** `TOKEN_ENCRYPTION_KEY` is reserved for later credential storage.
   No OAuth tokens are persisted by this skeleton.
 
@@ -182,10 +194,10 @@ uv run --project backend pytest backend/tests
 uv run --project backend alembic -c backend/alembic.ini heads
 ```
 
-The 12 backend tests cover setup/client construction, health, CORS, and API error
-handling, including malformed JSON, preserved HTTP headers, and safe server-error
-responses. They do not access Gmail, OpenRouter, or Neon. Routes used to induce errors
-exist only inside the tests.
+Backend tests cover setup, health/CORS, safe API errors, analysis schemas, request
+contracts, mocked OpenRouter responses, retry bounds, and the live-evaluation budget.
+They do not access Gmail, OpenRouter, or Neon. Routes used to induce errors exist
+only inside the tests. The evaluation script is a separate, opt-in network operation.
 
 ## Migrations and dependency updates
 

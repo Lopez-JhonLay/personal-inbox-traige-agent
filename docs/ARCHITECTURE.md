@@ -14,15 +14,18 @@ architecture. React/Vite/TypeScript/Tailwind and Flask/Pydantic settings are con
 with dependency lockfiles and environment examples. `/api/health`, the local Vite API
 proxy, and CORS configuration have been verified. Phase 1 is complete: application-wide
 JSON HTTP error handling preserves status codes and protocol headers, and uncaught
-exceptions return generic 500 JSON outside debug/testing propagation. All 12 backend
-tests pass (five setup and seven error-handling tests). The frontend now has the global
+exceptions return generic 500 JSON outside debug/testing propagation. The 12 foundation
+tests and the Phase 2 schema/service/endpoint tests pass. The frontend now has the global
 design/motion system and a responsive homepage with a fictional, browser-local inbox
 preview. Filtering, email details, copy/review controls, mobile navigation, and FAQs
 demonstrate the UI without making provider or backend requests.
 
-SQLAlchemy/psycopg, Alembic, Google OAuth/Gmail, and OpenRouter client factories are
-configured. No live provider requests, database tables, migration revisions, auth flows,
-domain schemas, live inbox dashboard features, or deployments have been implemented.
+SQLAlchemy/psycopg, Alembic, and Google OAuth/Gmail client factories are configured.
+Phase 2 adds strict email input/output schemas, a versioned prompt, OpenRouter analysis,
+bounded service retries, and an opt-in `/api/dev/analyze` endpoint. Phase 2 is complete:
+the fixed free ERNIE model passed all eight synthetic cases and manual review. Findings are recorded
+in [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) and `TASKS.md`. No database tables, migration revisions, auth flows,
+Gmail synchronization, live inbox dashboard features, or deployments are implemented.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -235,6 +238,9 @@ personal-inbox-triage-agent/
 |-- docs/
 |   |-- PRD.md
 |   |-- ARCHITECTURE.md
+|   |-- CODING_GUIDELINES.md
+|   |-- DESIGN_SYSTEM.md
+|   |-- TASKS.md
 |
 |-- .gitignore
 |-- README.md
@@ -569,7 +575,11 @@ The initial model must:
 - Follow structured-output instructions reliably.
 - Be evaluated before processing real email content.
 
-The model identifier will be selected during implementation rather than permanently fixed in the architecture.
+The selected model is `baidu/ernie-5.5-flash-preview:free`, which passed the Phase 2
+synthetic evaluation and manual review. Initial `openrouter/free` evaluations exposed
+quality variability. Each response records the actual model. `OPENROUTER_MODEL` remains
+configurable, with no automatic model fallback. GPT-5.6 Sol was considered but is paid.
+See [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for findings, limits, and privacy considerations.
 
 ### 7.2 AI Analysis Pipeline
 
@@ -668,6 +678,13 @@ Possible failures include:
 
 **Strategy:**
 
+Phase 2 currently uses a 30-second timeout per attempt and at most two attempts overall,
+with SDK retries disabled. Retry connection failures, timeouts, provider 5xx errors,
+and invalid output once; do not retry rate limits, credential failures, or refusals.
+The development endpoint is registered only with `ENABLE_DEV_ANALYSIS=true` (default
+false), accepts synthetic plain-text emails, and never persists results. Failure-state
+records and manual reanalysis below belong to the later persistence pipeline.
+
 1. Use defined request timeouts.
 2. Retry only recoverable failures.
 3. Limit retry attempts.
@@ -737,6 +754,11 @@ User-specific endpoints must require an authenticated session.
 | Method | Endpoint      | Description      |
 | ------ | ------------- | ---------------- |
 | GET    | `/api/health` | API health check |
+
+Local Phase 2 only: `POST /api/dev/analyze` accepts subject, optional sender, body,
+offset-aware received_at, and IANA timezone. Its successful data object contains analysis,
+actual model, prompt_version, and nullable token usage. It is absent unless explicitly
+enabled. See [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for validation limits and error status codes.
 
 ### 8.6 Standard API Response
 
@@ -892,8 +914,9 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
 
 OPENROUTER_API_KEY=
-OPENROUTER_MODEL=
+OPENROUTER_MODEL=baidu/ernie-5.5-flash-preview:free
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+ENABLE_DEV_ANALYSIS=false
 
 TOKEN_ENCRYPTION_KEY=
 
@@ -1118,4 +1141,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Phase 2 — AI Integration & Email Analysis, when requested; live provider credentials and model evaluation remain pending in `TASKS.md`.
+**Next Step:** Phase 3 database persistence when requested. Phases 0, 1, and 2 are complete;
+see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

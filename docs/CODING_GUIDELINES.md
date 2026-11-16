@@ -136,7 +136,9 @@ personal-inbox-triage-agent/
 ├── docs/
 │   ├── PRD.md
 │   ├── ARCHITECTURE.md
-│   └── CODING_GUIDELINES.md
+│   ├── CODING_GUIDELINES.md
+│   ├── TASKS.md
+│   └── DESIGN_SYSTEM.md
 │
 ├── .gitignore
 └── README.md
@@ -1211,6 +1213,10 @@ docs: add coding guidelines
 ## 23. Documentation Guidelines
 
 Maintain documentation under `docs/`.
+
+Keep all phase checklists, phase-specific testing guides, overall progress, and
+milestone history in `docs/TASKS.md`. Keep shared standards at the top level and
+link directly to roadmap sections rather than creating separate phase files.
 
 ### Required Documents
 
