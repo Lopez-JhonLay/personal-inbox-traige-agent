@@ -1,0 +1,99 @@
+@layer base {
+  html {
+    color-scheme: light;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: var(--text-body--line-height);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-inline-size: 0;
+    min-block-size: 100svh;
+    margin: 0;
+    font-size: var(--text-body);
+  }
+
+  #root {
+    min-block-size: 100svh;
+    isolation: isolate;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: var(--tracking-heading);
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-display);
+    line-height: var(--text-display--line-height);
+  }
+
+  h2 {
+    font-size: var(--text-heading);
+  }
+
+  h3 {
+    font-size: var(--text-lead);
+  }
+
+  :where(p, li, dd) {
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+
+  small {
+    font-size: var(--text-caption);
+  }
+
+  :where(code, kbd, pre, samp) {
+    font-family: var(--font-mono);
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    overflow-wrap: anywhere;
+  }
+
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+  }
+
+  :where(button:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 4px;
+    scroll-margin-block: 1rem;
+  }
+
+  ::selection {
+    background-color: var(--color-highlight);
+    color: var(--color-ink);
+  }
+
+  :where(hr) {
+    border-color: var(--color-line);
+    border-block-start-width: var(--border-rule);
+  }
+}

@@ -1,17 +1,17 @@
-# Personal Inbox Triage Agent
+# Mailkind
 
 ## Development Phases & Task Tracker
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Status:** In Progress — Phases 0 and 1 Complete; Phase 2 Pending Feature Work  
-**Project:** Personal Inbox Triage Agent  
+**Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
 ---
 
 ## Project Overview
 
-This document serves as the development roadmap and task tracker for the Personal Inbox Triage Agent.
+This document serves as the development roadmap and task tracker for Mailkind.
 
 The project will be developed incrementally, starting with environment setup and backend fundamentals before introducing AI integration, Gmail connectivity, database persistence, the frontend dashboard, and deployment.
 
@@ -31,6 +31,10 @@ The project will be developed incrementally, starting with environment setup and
 - `[x]` Completed
 
 ### Current Setup — November 16, 2026
+
+The product is named **Mailkind**. Homepage branding, page metadata, package names,
+and project documentation use this name. The existing GitHub repository URL and
+local folder name are retained.
 
 The initial project skeleton and dependencies are installed and locked. Verified:
 frontend build, Biome/Prettier, Python Ruff checks, 12 backend tests,
@@ -57,6 +61,12 @@ HTTP statuses and preserved protocol headers. Messages do not echo private excep
 descriptions. Unexpected failures use generic 500 JSON outside debug/testing exception
 propagation, retaining Flask's normal exception logging. Seven error-handling tests
 and the five original setup tests pass; error-inducing routes exist only in tests.
+
+The user also authorized the global design system before Phase 2. Reference research
+used web search and public HTML/CSS, without computer automation. Tailwind v4 theme
+tokens, base typography, responsive layout primitives, and control/link/surface styles
+are implemented and documented in `DESIGN_SYSTEM.md`. This does not complete the
+remaining frontend UI or application-feature work.
 
 Only individually completed tasks are checked below. Client factories and environment
 placeholders do not count as completed auth flows, live integrations, or persistence.
@@ -568,7 +578,7 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 
 # Phase 6 — React Frontend Foundation
 
-**Status:** In Progress — Blank React Root and API Wiring Verified; UI and Server State Pending
+**Status:** In Progress — Homepage and Sample Interactions Verified; Live API UI and Server State Pending
 
 ### Objective
 
@@ -589,11 +599,32 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Initialize React with Vite and TypeScript.
 - [x] Configure TypeScript strict mode.
 - [x] Install Tailwind CSS.
-- [x] Configure the Tailwind Vite plugin and global CSS import (no UI styling yet).
+- [x] Configure the Tailwind Vite plugin, global CSS, and semantic design system.
 - [x] Configure Biome instead of ESLint for TypeScript 7 compatibility.
 - [x] Configure Prettier.
 - [x] Configure environment variable support and `.env.example` (local credentials not populated).
 - [x] Verify the React development server works.
+
+#### 6.1a Global Design System (Authorized Before Phase 2)
+
+- [x] Study the reference site's typography, palette, spacing, layout, controls, and responsive CSS using web research.
+- [x] Define independent semantic Tailwind v4 tokens for typography, color, spacing, widths, breakpoints, radii, and shadows.
+- [x] Add responsive container, stack, cluster, grid, and sidebar utilities.
+- [x] Add reusable button, link, navigation, border, surface, and icon styles without building feature UI.
+- [x] Include keyboard focus, 44px controls, reduced-motion, and forced-color support.
+- [x] Enable Biome's Tailwind CSS parser and verify lint, formatting, production build, contrast pairs, and responsive utility compilation.
+- [x] Document the design rules and usage examples in `docs/DESIGN_SYSTEM.md`.
+- [x] Study reference animation CSS and add independent, opt-in motion primitives with shared durations/easing, capped stagger, safe inert exits, keyboard access, and reduced-motion defaults.
+
+#### 6.1b First Homepage (Authorized Before Phase 2)
+
+- [x] Build a responsive homepage using the global design and motion system.
+- [x] Add navigation, product introduction, walkthrough, details, FAQs, and footer.
+- [x] Add fictional inbox data with filters, native email-detail dialog, copy-reply and reviewed-state controls.
+- [x] Use Lucide React icons and a locally served Unsplash sample photo.
+- [x] Verify browser behavior at 320, 390, 820, 1024, and 1440px, keyboard entry, reduced motion, and demo interactions.
+- [x] Review desktop, mobile, and dialog screenshots and run frontend checks.
+- [x] Refine copy and icon density using the user's selected direction: direct language, one demo notice, fewer labels/decorations, and Lucide React icons.
 
 #### 6.2 Frontend Organization
 
@@ -619,18 +650,18 @@ Initialize React and establish the frontend architecture, API communication, and
 
 #### 6.4 Shared UI Components
 
-- [ ] Create application layout.
-- [ ] Create header/navigation.
+- [x] Create homepage application layout (live dashboard layout remains pending).
+- [x] Create responsive homepage header/navigation.
 - [ ] Create reusable buttons.
 - [ ] Create badges.
 - [ ] Create loading indicators.
 - [ ] Create empty-state components.
 - [ ] Create error-state components.
-- [ ] Establish responsive styling patterns.
+- [x] Establish responsive styling patterns.
 
 ### Phase Completion Checklist
 
-- [x] React application runs locally with an intentionally blank root.
+- [x] React application runs locally with the homepage and fictional inbox preview.
 - [x] Tailwind CSS compiles successfully.
 - [x] Local API proxy communication works for the health endpoint.
 - [ ] TanStack Query is configured.
@@ -642,7 +673,7 @@ Initialize React and establish the frontend architecture, API communication, and
 
 # Phase 7 — Dashboard & Email Management
 
-**Status:** Not Started
+**Status:** In Progress — Welcome Homepage and Demo Only; Live Dashboard Pending
 
 ### Objective
 
@@ -660,7 +691,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 #### 7.1 Welcome & Gmail Connection
 
-- [ ] Create welcome page.
+- [x] Create welcome homepage with a sample inbox (no live Gmail connection).
 - [ ] Add Connect Gmail button.
 - [ ] Integrate OAuth redirect flow.
 - [ ] Display Gmail connection status.
@@ -996,7 +1027,7 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [ ] Core end-to-end workflow passes.
 - [ ] Documentation is up to date.
 
-**Deliverable:** Deployed Personal Inbox Triage Agent MVP.
+**Deliverable:** Deployed Mailkind MVP.
 
 ---
 
@@ -1101,6 +1132,8 @@ Use this section to record development milestones, decisions, and challenges.
 - Added shared VS Code settings/recommendations, validated their tool paths, verified pytest discovery, and reran frontend/backend checks successfully.
 - Completed Phase 1 with application-wide JSON error handling, status/header preservation, and generic error messages. Seven new tests cover API failures; all 12 backend tests pass.
 - Corrected the Windows interpreter setting to `backend/.venv/Scripts/python.exe` after Pylance received the `.venv` folder as its executable and failed to resolve installed packages.
+- Added the independently styled global design system before Phase 2: Tailwind tokens, base CSS, responsive primitives, control states, and reference/usage documentation. No reference assets, fonts, branding, or feature pages were added.
+- Subsequently built the first homepage to visualize the system, including a fictional inbox demo, responsive navigation, original icons, Unsplash photo, FAQs, and local interactions. Verified mobile through desktop layouts and browser behavior; live integrations remain pending.
 
 **Solutions or Decisions:**
 
@@ -1145,12 +1178,12 @@ Use this section to record development milestones, decisions, and challenges.
 
 **Total MVP Phases:** 11 (Phase 0–10)  
 **Current Phase:** Phase 2 — AI Integration & Email Analysis (client factory exists; feature work pending)  
-**Current Status:** Phases 0 and 1 Complete; AI, Gmail, Persistence, and UI Features Remain Pending
+**Current Status:** Phases 0 and 1 Complete; Homepage Demo Available; Live AI, Gmail, Persistence, and Dashboard Features Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.3  
+**Document Version:** 1.4  
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026

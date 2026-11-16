@@ -1,4 +1,4 @@
-# Personal Inbox Triage Agent
+# Mailkind
 
 ## Product Requirements Document (PRD)
 
@@ -12,7 +12,7 @@
 
 ### Description
 
-Personal Inbox Triage Agent is an AI-powered web application that helps users manage their Gmail inbox by automatically analyzing incoming emails, identifying important messages, and recommending appropriate actions.
+Mailkind is an AI-powered web application that helps users manage their Gmail inbox by automatically analyzing incoming emails, identifying important messages, and recommending appropriate actions.
 
 The application connects directly to a user's Gmail account through Google OAuth, eliminating the need to manually input emails.
 
@@ -324,7 +324,7 @@ The MVP is considered complete when:
 
 ## 11. Product Vision
 
-The long-term vision is to transform the Personal Inbox Triage Agent from a simple AI-powered email analyzer into a proactive personal assistant.
+The long-term vision is to transform Mailkind from a simple AI-powered email analyzer into a proactive personal assistant.
 
 Instead of manually reviewing every incoming email, users should be able to open a dashboard and immediately understand:
 

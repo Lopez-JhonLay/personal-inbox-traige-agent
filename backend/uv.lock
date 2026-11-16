@@ -585,7 +585,7 @@ wheels = [
 ]
 
 [[package]]
-name = "personal-inbox-triage-backend"
+name = "mailkind-backend"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,7 +1,7 @@
 [project]
-name = "personal-inbox-triage-backend"
+name = "mailkind-backend"
 version = "0.0.0"
-description = "Flask backend foundation for the Personal Inbox Triage Agent"
+description = "Flask backend foundation for Mailkind"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "Flask==3.1.3",

@@ -1,4 +1,4 @@
-# Personal Inbox Triage Agent
+# Mailkind
 
 ## System Architecture Document
 
@@ -15,12 +15,14 @@ with dependency lockfiles and environment examples. `/api/health`, the local Vit
 proxy, and CORS configuration have been verified. Phase 1 is complete: application-wide
 JSON HTTP error handling preserves status codes and protocol headers, and uncaught
 exceptions return generic 500 JSON outside debug/testing propagation. All 12 backend
-tests pass (five setup and seven error-handling tests). The React root intentionally
-renders nothing.
+tests pass (five setup and seven error-handling tests). The frontend now has the global
+design/motion system and a responsive homepage with a fictional, browser-local inbox
+preview. Filtering, email details, copy/review controls, mobile navigation, and FAQs
+demonstrate the UI without making provider or backend requests.
 
 SQLAlchemy/psycopg, Alembic, Google OAuth/Gmail, and OpenRouter client factories are
 configured. No live provider requests, database tables, migration revisions, auth flows,
-domain schemas, UI features, or deployments have been implemented.
+domain schemas, live inbox dashboard features, or deployments have been implemented.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -30,7 +32,7 @@ for detailed progress and `README.md` for current commands and configuration.
 
 ## 1. Architecture Overview
 
-The Personal Inbox Triage Agent is a full-stack AI-powered application consisting of a React frontend, Flask backend, PostgreSQL database, Gmail API integration, and an AI model accessed through OpenRouter.
+Mailkind is a full-stack AI-powered application consisting of a React frontend, Flask backend, PostgreSQL database, Gmail API integration, and an AI model accessed through OpenRouter.
 
 The application connects to Gmail, retrieves messages, analyzes their contents using an LLM, stores the results, and displays actionable insights through a dashboard.
 

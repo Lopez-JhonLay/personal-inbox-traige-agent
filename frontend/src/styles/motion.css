@@ -1,0 +1,116 @@
+/* Resting content stays visible. Animation is opt-in and only runs when permitted. */
+@layer components {
+  .motion-exit[inert] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .motion-enter {
+      animation: inbox-enter var(--motion-duration-enter) var(--ease-enter)
+        backwards;
+    }
+
+    .motion-pop {
+      animation: inbox-pop var(--motion-duration-enter) var(--ease-pop)
+        backwards;
+    }
+
+    /* The consumer first makes exiting content inert, then hides or unmounts it. */
+    .motion-exit[inert] {
+      animation: inbox-exit var(--motion-duration-exit) var(--ease-exit) both;
+    }
+
+    .motion-stagger > * {
+      --motion-order: 0;
+      animation: inbox-enter var(--motion-duration-enter) var(--ease-enter)
+        backwards;
+      animation-delay: calc(var(--motion-order) * var(--motion-stagger-step));
+    }
+
+    .motion-stagger > :nth-child(2) {
+      --motion-order: 1;
+    }
+
+    .motion-stagger > :nth-child(3) {
+      --motion-order: 2;
+    }
+
+    .motion-stagger > :nth-child(n + 4) {
+      --motion-order: 3;
+    }
+
+    /* Keyboard focus must never wait for an entrance or stagger delay. */
+    .motion-enter:focus-within,
+    .motion-pop:focus-within,
+    .motion-stagger:focus-within > * {
+      animation: none;
+    }
+
+    .nav-link {
+      transition-property: background-color, border-color, color;
+      transition-duration: var(--motion-duration-state);
+      transition-timing-function: var(--ease-settle);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .motion-lift {
+        transition: translate var(--motion-duration-state) var(--ease-settle);
+      }
+
+      .motion-lift:not(:disabled, [aria-disabled='true']):hover {
+        translate: 0 -2px;
+      }
+    }
+  }
+
+  /* Printing never captures an entrance's hidden frame or an element being removed. */
+  @media print {
+    .motion-enter,
+    .motion-pop,
+    .motion-stagger > *,
+    .motion-lift {
+      animation: none;
+      transition: none;
+      translate: none;
+      scale: none;
+    }
+
+    .motion-exit[inert] {
+      display: none;
+    }
+  }
+}
+
+@keyframes inbox-enter {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-distance);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes inbox-pop {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes inbox-exit {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 calc(var(--motion-distance) * -0.5);
+  }
+}

@@ -3,6 +3,11 @@
   "files": {
     "includes": ["src/**", "vite.config.ts"]
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {

@@ -1,15 +1,19 @@
-# Personal Inbox Triage Agent
+# Mailkind
+
+Mailkind helps you review email summaries, spot deadlines, and decide what to handle
+first. The product name is Mailkind; the existing repository URL and local folder
+name are retained.
 
 Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
 
-- `frontend/`: React, TypeScript, Vite, and Tailwind CSS. The React root renders nothing.
+- `frontend/`: React, TypeScript, Vite, Tailwind CSS, and a responsive homepage with an interactive sample inbox.
 - `backend/`: Flask application factory, Pydantic settings, `/api/health`, and JSON error handling.
 - Integration factories: SQLAlchemy with psycopg for Neon, OpenAI SDK for OpenRouter,
   Google OAuth and a read-only Gmail client.
 - Alembic is configured with empty metadata and no migration revisions.
 
 There are no domain models, application schemas, authentication endpoints, email processing,
-AI analysis workflows, UI features, or deployment configuration.
+AI analysis workflows, a live inbox dashboard, or deployment configuration.
 Client factories do not call external services during application startup.
 
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
@@ -23,6 +27,29 @@ and [the contributor guide](AGENTS.md) for repository conventions.
 Frontend formatting uses Prettier. Biome supplies linting because the current
 `typescript-eslint` release requires TypeScript `<6.1.0`, which excludes the latest
 stable TypeScript 7 selected for this setup.
+
+## Design system
+
+The global Tailwind v4 design system uses warm paper/ink colors, readable system
+typography, fluid spacing, rounded outlined controls, and crisp offset shadows.
+`frontend/src/styles/` contains the theme tokens, document defaults, and responsive
+layout/control primitives, imported by `frontend/src/index.css`. Use semantic utilities
+such as `bg-paper`, `text-ink`, `text-heading`, and `rounded-panel`, with `stack`,
+`cluster`, `auto-grid`, and `sidebar-layout` for layout. See
+[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) for reference analysis, tokens, and examples.
+`styles/motion.css` adds opt-in entrance/pop/exit/stagger/lift effects with shared
+timing tokens and reduced-motion defaults. Exits require inert content; future
+consumers handle visibility, focus, and unmounting.
+`App.tsx` renders `pages/HomePage.tsx`, with the responsive navigation, sample inbox,
+walkthrough, workspace image, FAQs, and closing call to action. The demo supports
+filtering fictional messages, opening their details, copying a sample reply, and
+toggling local reviewed status. Reloading resets all demo state. No Gmail or AI calls
+are made. The homepage runs with the frontend alone; Flask is only needed for API work.
+Copy is warm and direct, with one demo notice beside the inbox. Named imports from
+Lucide React replace custom icon artwork; icons mainly identify actions and states.
+The locally served workspace photo is from
+[Unsplash](https://images.unsplash.com/photo-1497032628192-86f99bcd76bc), under the
+[Unsplash license](https://unsplash.com/license).
 
 ## Requirements
 
@@ -62,7 +89,7 @@ uv run --project backend flask --app backend/run.py run --debug --port 5000
 npm --prefix frontend run dev
 ```
 
-The frontend is at `http://localhost:5173` and intentionally displays a blank page.
+The homepage is at `http://localhost:5173`.
 Vite proxies `/api` to Flask on `127.0.0.1:5000`. The fetch wrapper sends session cookies;
 the backend restricts cross-origin access to `FRONTEND_URL`.
 

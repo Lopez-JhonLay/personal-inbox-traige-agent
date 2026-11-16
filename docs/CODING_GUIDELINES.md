@@ -1,6 +1,6 @@
 # Coding Guidelines
 
-## Personal Inbox Triage Agent
+## Mailkind
 
 **Version:** 1.0  
 **Status:** Active  
@@ -11,7 +11,7 @@
 
 ## 1. Purpose
 
-This document defines the coding standards, conventions, and development practices for the Personal Inbox Triage Agent.
+This document defines the coding standards, conventions, and development practices for Mailkind.
 
 Its purpose is to ensure that the codebase remains:
 
@@ -433,19 +433,25 @@ Never place Gmail credentials, OpenRouter API keys, database credentials, or enc
 
 ## 8. Styling Guidelines
 
-Use **Tailwind CSS only** for application styling.
+Use **Tailwind CSS utilities and the shared global design system** for application styling.
+`frontend/src/styles/theme.css` defines Tailwind v4 theme tokens; `base.css` handles
+document defaults; `primitives.css` provides responsive layout utilities and opt-in
+control/surface classes. `motion.css` supplies opt-in motion with shared timing/easing
+tokens and reduced-motion defaults. See `DESIGN_SYSTEM.md` for rules and usage examples.
 
 ### Rules
 
 - MUST use Tailwind utility classes for standard component styling.
 - SHOULD maintain consistent spacing, typography, and colors.
+- MUST use semantic design tokens for shared colors, type, borders, and radii rather than duplicate isolated values.
 - SHOULD use responsive utility classes.
 - SHOULD use semantic HTML.
 - SHOULD provide visible focus indicators.
+- MUST respect reduced-motion preferences and preserve immediate keyboard access when adding animation.
 - SHOULD use reusable components for repeated UI patterns.
 - MUST NOT introduce a separate UI component library without an explicit architectural decision.
 - SHOULD avoid unnecessary inline styles.
-- MAY use minimal global CSS for base styles and application-wide requirements.
+- MAY extend global CSS for base styles, theme tokens, and reusable primitives using Tailwind's `@theme`, `@utility`, and cascade layers.
 
 ### Example
 
