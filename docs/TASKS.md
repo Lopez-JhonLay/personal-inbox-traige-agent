@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.9\
-**Status:** In Progress — Phases 0 through 3 Complete; Phase 4 Next\
+**Version:** 1.10\
+**Status:** In Progress — Phases 0 through 4 Complete; Phase 5 Next\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -40,10 +40,10 @@ and project documentation use this name. The existing GitHub repository URL and
 local folder name are retained.
 
 The initial project skeleton and dependencies are installed and locked. Verified:
-frontend build, Biome/Prettier, Python Ruff checks, 88 backend tests (including opt-in Neon tests),
+frontend build, Biome/Prettier, Python Ruff checks, 129 backend tests (122 offline and seven opt-in Neon tests),
 `GET /api/health`, and the Vite-to-Flask proxy. External client construction is tested
-locally; live OpenRouter synthetic requests have succeeded. Neon connectivity and
-migration `0001` are verified; Gmail remains unverified.
+locally; live OpenRouter synthetic requests have succeeded. Neon connectivity, migration `0001`, and live read-only Gmail OAuth/refresh/retrieval/
+disconnection/reauthorization are verified.
 
 Git is initialized on `main`. The user supplied the GitHub repository at
 `git@github.com:Lopez-JhonLay/personal-inbox-traige-agent.git`; it is configured as
@@ -93,7 +93,7 @@ that those features or the full MVP are complete.
 - [x] [Phase 1 — Flask Backend Foundation](#phase-1--flask-backend-foundation)
 - [x] [Phase 2 — AI Integration & Email Analysis](#phase-2--ai-integration--email-analysis)
 - [x] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
-- [ ] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
+- [x] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
 - [ ] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
 - [ ] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
 - [ ] [Phase 7 — Dashboard & Email Management](#phase-7--dashboard--email-management)
@@ -659,7 +659,7 @@ The development analysis endpoint remains stateless.
 # Phase 4 — Google OAuth & Gmail Integration
 
 
-**Status:** In Progress — Client Factories Only; Authorization and Retrieval Pending
+**Status:** Complete — Live OAuth, Refresh, Read, Disconnect, and Reauthorization Verified
 
 ## Objective
 
@@ -678,63 +678,176 @@ Allow users to securely connect their Gmail account and retrieve real emails.
 
 ### 4.1 Google Cloud Setup
 
-- [ ] Create a Google Cloud project.
-- [ ] Enable the Gmail API.
-- [ ] Configure Google Auth Platform settings.
-- [ ] Configure the OAuth consent screen.
-- [ ] Add authorized test users when required.
-- [ ] Create OAuth client credentials for a web application.
-- [ ] Configure authorized redirect URIs.
-- [ ] Store Google credentials in backend environment variables.
+- [x] Create a Google Cloud project.
+- [x] Enable the Gmail API.
+- [x] Configure Google Auth Platform settings.
+- [x] Configure the OAuth consent screen.
+- [x] Add authorized test users when required.
+- [x] Create OAuth client credentials for a web application.
+- [x] Configure authorized redirect URIs.
+- [x] Store Google credentials in backend environment variables.
 
 ### 4.2 OAuth Backend
 
 - [x] Install required Google authentication libraries.
-- [x] Add a Google OAuth Flow factory using the read-only Gmail scope (no authorization exchange).
-- [ ] Implement OAuth authorization flow.
-- [ ] Generate and validate OAuth state.
-- [ ] Implement the OAuth callback endpoint.
-- [ ] Exchange authorization codes for tokens.
-- [ ] Retrieve the authorized account identity.
-- [ ] Establish authenticated application sessions.
-- [ ] Encrypt refresh tokens before storage.
-- [ ] Implement secure token refresh.
-- [ ] Handle failed or denied authorization.
+- [x] Add a Google OAuth Flow factory using the read-only Gmail scope and PKCE.
+- [x] Implement OAuth authorization flow.
+- [x] Generate and validate OAuth state.
+- [x] Implement the OAuth callback endpoint.
+- [x] Exchange authorization codes for tokens.
+- [x] Retrieve the authorized account identity.
+- [x] Establish authenticated application sessions.
+- [x] Encrypt refresh tokens before storage.
+- [x] Implement secure token refresh.
+- [x] Handle failed or denied authorization.
 
 ### 4.3 Gmail Service
 
 - [x] Create `gmail_service.py`.
 - [x] Configure a Gmail API client factory accepting caller-supplied credentials.
-- [ ] Retrieve Gmail account information.
-- [ ] Fetch a list of recent message IDs.
-- [ ] Retrieve individual message details.
-- [ ] Extract sender information.
-- [ ] Extract subject information.
-- [ ] Extract received timestamps.
-- [ ] Decode supported message bodies.
-- [ ] Handle plain-text and HTML emails.
-- [ ] Ignore attachment contents for MVP.
-- [ ] Handle Gmail API failures.
+- [x] Retrieve Gmail account information.
+- [x] Fetch a list of recent message IDs.
+- [x] Retrieve individual message details.
+- [x] Extract sender information.
+- [x] Extract subject information.
+- [x] Extract received timestamps.
+- [x] Decode supported message bodies.
+- [x] Handle plain-text and HTML emails.
+- [x] Ignore attachment contents for MVP.
+- [x] Handle Gmail API failures.
 
 ### 4.4 Connection Management
 
-- [ ] Implement Gmail connection status endpoint.
-- [ ] Implement Gmail disconnect endpoint.
-- [ ] Revoke access where supported.
-- [ ] Remove stored credentials on disconnection.
-- [ ] Define handling of previously synchronized data.
-- [ ] Verify authorization is required for protected endpoints.
+- [x] Implement Gmail connection status endpoint.
+- [x] Implement Gmail disconnect endpoint.
+- [x] Revoke access where supported.
+- [x] Remove stored credentials on disconnection.
+- [x] Define handling of previously synchronized data.
+- [x] Verify authorization is required for protected endpoints.
 
 ## Phase Completion Checklist
 
-- [ ] User can connect Gmail.
-- [ ] OAuth flow works securely.
-- [ ] Backend can retrieve authorized Gmail messages.
-- [ ] Access and refresh tokens are protected.
-- [ ] User can disconnect Gmail.
-- [ ] No Gmail write permissions are required.
+- [x] User can connect Gmail.
+- [x] OAuth flow works securely.
+- [x] Backend can retrieve authorized Gmail messages.
+- [x] Access and refresh tokens are protected.
+- [x] User can disconnect Gmail.
+- [x] No Gmail write permissions are required.
 
 **Deliverable:** Secure, read-only Gmail integration.
+
+## Phase 4 Setup and Testing Guide
+
+Google setup, live consent, encrypted credential persistence, refresh from a fresh process,
+and one-message retrieval are verified. The user confirmed the disconnect confirmation
+modal, successful revocation without warnings, and successful reauthorization.
+Automated OAuth/Gmail tests mock Google. The homepage sample remains fictional and
+connecting does not synchronize or submit real email to OpenRouter.
+
+### Google Cloud setup
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) with your Google account.
+2. Use the project selector at the top, choose **New Project**, name it **Mailkind**, create
+   it, and select it. An existing personal project is also supported.
+3. Open **APIs & Services > Library**, find **Gmail API**, and click **Enable**.
+4. Open **Google Auth Platform > Overview** and click **Get started** if shown. Enter
+   **Mailkind** as the app name, select your support email, choose **External** audience,
+   enter your contact email, and finish the setup.
+5. Open **Audience**, keep publishing status **Testing**, and add the Gmail address you
+   will connect under **Test users**. Save it.
+6. Open **Data Access > Add or remove scopes**, select
+   `https://www.googleapis.com/auth/gmail.readonly`, then update/save. No Gmail write
+   scopes are needed.
+7. Open **Clients > Create client**. Choose **Web application**, name it **Mailkind local**,
+   and add this **Authorized redirect URI** exactly:
+
+   ```text
+   http://localhost:5000/api/auth/google/callback
+   ```
+
+   Authorized JavaScript origins may remain empty for this server-side OAuth flow.
+   The frontend is on port 5173, but the registered callback is on port 5000.
+8. Create the client. Copy its client ID and secret into the existing entries in the
+   ignored `backend/.env`, without sharing the values in chat or committing them:
+
+   ```dotenv
+   GOOGLE_CLIENT_ID=your-client-id
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback
+   ```
+
+9. Keep the generated local `SECRET_KEY` and `TOKEN_ENCRYPTION_KEY` stable. New installations
+   can generate them with the commands in `README.md` and `backend/.env.example`.
+10. Restart Flask after changing configuration. Use `localhost` for both frontend and
+    callback; mixing `127.0.0.1` and `localhost` loses the browser's OAuth session cookie.
+
+Google documents this flow in its [web-server OAuth guide](https://developers.google.com/identity/protocols/oauth2/web-server).
+External apps in Testing generally receive refresh tokens that expire after seven days;
+see [Google's expiration rules](https://developers.google.com/identity/protocols/oauth2/).
+Keep development in Testing. Public verification and deployment remain later work.
+
+### Local verification
+
+Start Flask and Vite in separate terminals from the repository root:
+
+```powershell
+uv run --project backend flask --app backend/run.py run --debug --port 5000
+```
+
+```powershell
+npm --prefix frontend run dev
+```
+
+1. Open `http://localhost:5173`, scroll to **Your Gmail connection**, and click **Connect Gmail**.
+2. Select your test Gmail account and grant read-only access in Google's consent screen.
+   Review Google's consent information yourself. The app redirects to the homepage.
+3. Confirm the connected address appears. Reload and restart Flask; the cookie and stored
+   connection should still work within the eight-hour session lifetime.
+4. Open `http://localhost:5173/api/auth/status` in the same browser and copy `data.user_id`.
+   This endpoint returns no OAuth credentials. Treat the returned CSRF token as private.
+5. Explicitly read one inbox message with this command, replacing the UUID:
+
+   ```powershell
+   uv run --project backend python backend/scripts/check_gmail.py --user-id YOUR_USER_UUID
+   ```
+
+   This refreshes credentials and reads at most one message. It prints only success,
+   message count, and body character count. No message content is stored or sent to AI.
+   An empty inbox successfully reports zero messages.
+6. Click **Disconnect**, review the confirmation, and disconnect. Confirm that the UI
+   returns to its disconnected state and `encrypted_refresh_token` is NULL. Existing
+   saved content remains. If Google revocation fails, remove Mailkind in your
+   [Google Account connections](https://myaccount.google.com/connections).
+7. Reconnect once more to verify reauthorization. Connecting a different account requires
+   first disconnecting the current account, preserving each user's separate ownership.
+
+Troubleshooting: `redirect_uri_mismatch` means the registered URI differs from the `.env`
+value. Access denied usually means the chosen account is not listed as a test user or
+the requested scope was declined. Expired state requires restarting from **Connect Gmail**.
+An unreadable token requires restoring the original Fernet key or reconnecting the account.
+
+### Automated verification
+
+```powershell
+uv run --project backend pytest backend/tests
+uv run --project backend pytest backend/tests/test_repositories.py --run-db-tests
+```
+
+Normal tests mock Google and never use real Gmail or OpenRouter. Explicit Neon tests use
+rollback-only synthetic records. Credential rotation and late writes after disconnect
+are covered. Migration `0001` remains unchanged; no new schema migration is required.
+
+Current verification: 122 offline tests passed; all seven opt-in Neon repository tests passed.
+Frontend lint, formatting, and production build passed. The explicit live smoke check read
+one message (853 body characters); no content was displayed, persisted, or sent to AI.
+The initial sandbox proxy failure was resolved by running Flask with normal network access.
+
+Live disconnect was confirmed by the user and database inspection: status became
+`disconnected` and the stored refresh token was NULL. All content tables remained empty.
+The user then successfully reconnected. Phase 4 is complete. The browser connection was unavailable, so native Chrome was used for a 320px layout check.
+A cramped heading was fixed by stacking the connection text and controls on small screens.
+The user checked connection/confirmation/disconnection/reconnection manually and stopped
+the final computer-use check; dedicated keyboard review remains a frontend follow-up.
 
 ---
 
@@ -1378,6 +1491,11 @@ rules remain in the shared references; phase-specific verification is recorded b
 - **Phase 3:** Added five SQLAlchemy models and ownership-scoped repositories; reviewed and
   applied migration `0001` to Neon. All 88 tests passed, including six explicitly enabled
   rollback-only Neon tests. Alembic reports no schema drift; no test rows remain.
+- **Phase 4 implementation:** Added OAuth with state/PKCE, Fernet encryption, session/CSRF
+  protection, Gmail MIME normalization, connection controls, and a one-message smoke check.
+  Google setup instructions are included above. Live OAuth, one-message reading, refresh,
+  disconnection, token removal, and reauthorization passed; real email content was not stored
+  or sent to AI. The user manually checked the connection and confirmation controls.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1388,13 +1506,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 4 — Google OAuth & Gmail Integration (next)\
-**Current Status:** Phases 0 through 3 Complete; Neon Persistence Verified; Gmail, Live Processing Pipeline, and Dashboard Features Pending
+**Current Phase:** Phase 5 — Email Synchronization & AI Pipeline (next)\
+**Current Status:** Phases 0 through 4 Complete; Neon and Gmail Integration Verified; Live Processing Pipeline and Dashboard Features Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.9\
+**Document Version:** 1.10\
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026

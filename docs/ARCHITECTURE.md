@@ -28,7 +28,12 @@ in [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) and `TASKS.md`.
 Phase 3 adds the five SQLAlchemy models, ownership-scoped repositories, migration `0001`,
 and opt-in rollback-only Neon tests. Migration `0001` is applied; all 88 tests pass.
 See `TASKS.md` for live migration verification.
-Auth flows, Gmail synchronization, live dashboard features, and deployments remain pending.
+Phase 4 implements Google OAuth with state/PKCE, Fernet-encrypted refresh tokens,
+signed application sessions, CSRF-protected disconnection, read-only Gmail retrieval,
+and homepage connection controls. Google calls are mocked in routine tests; live consent,
+token refresh, one-message reading, disconnection, and reauthorization passed. No real
+email content was stored or sent to AI. Synchronization, live dashboard features, and
+deployments remain later work.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -454,7 +459,9 @@ Foreign keys cascade deletions. Disconnecting Gmail retains history and clears s
 credentials. Repositories take an explicit session and enforce ownership through the
 connection/email relationships, including checking action email ownership on creation.
 Services own commits and rollbacks. Refresh-token encryption remains a Phase 4 service
-responsibility; the repository accepts only caller-encrypted token values by contract.
+responsibility, implemented by the auth service; the repository accepts only caller-encrypted
+token values by contract. Conditional credential updates compare prior ciphertext and
+connected status so late refreshes cannot restore a disconnected connection.
 
 Revision `0001` is a frozen schema snapshot. Tests replay it offline against model metadata.
 Explicit `--run-db-tests` tests use the configured Neon pooled URL, with transaction
@@ -814,6 +821,32 @@ Actual HTTP status codes must reflect the result.
 
 ### 9.1 Session Management
 
+Phase 4 uses Flask's signed `mailkind_session` cookie: HttpOnly, SameSite=Lax,
+eight-hour lifetime, Secure when configured for HTTPS, and no automatic sliding refresh.
+The cookie contains user ID, CSRF token, and temporary state/PKCE values, never access
+or refresh tokens. OAuth state expires after ten minutes and is cleared on callback.
+Successful authorization clears prior session values and creates a fresh authenticated
+session. `/api/auth/status` returns only configuration/connection status, user ID/email,
+and the authenticated session's CSRF token. Disconnect requires `X-CSRF-Token`.
+
+The Google profile supplies the Gmail account identity with the existing read-only scope.
+Changing accounts requires disconnection. Refresh tokens are encrypted with Fernet;
+access tokens exist only during server-side requests. Refresh failures from revoked
+grants mark the connection `reauthorization_required`; transient failures preserve it.
+Disconnect removes credentials locally before attempting remote revocation, clears the
+current cookie, and preserves email/analysis/action history. Remote failure is reported.
+
+The Gmail reader fetches up to 20 inbox IDs and full details, normalizes inline MIME text,
+and never fetches attachments or remote HTML resources. Bodies are bounded to 256 KB
+decoded across at most 200 MIME parts and depth 20, then limited to 20,000 characters.
+HTML is converted to readable text, not rendered. The explicit development smoke command
+reads at most one message and prints only counts. No real emails are persisted or sent
+to AI in Phase 4. Invalid or oversized messages return safe errors.
+
+The local Werkzeug filter removes OAuth callback query strings. Hosted access logging
+must also omit those query strings. Missing/invalid auth configuration keeps health and
+the sample homepage available. Live setup instructions and acceptance are in `TASKS.md`.
+
 The backend manages authenticated user sessions after successful Google OAuth authorization.
 
 Recommended approach:
@@ -1162,5 +1195,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Phase 4 OAuth/Gmail integration. Phases 0 through 3 are complete;
+**Next Step:** Phase 5 synchronization and AI pipeline. Phases 0 through 4 are complete;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

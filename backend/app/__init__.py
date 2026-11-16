@@ -1,4 +1,6 @@
-from flask import Flask
+from datetime import timedelta
+
+from flask import Flask, Response, jsonify
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
@@ -6,7 +8,10 @@ from app.config import Settings
 from app.database import create_database
 from app.errors import handle_http_error
 from app.routes.analysis import analysis_bp
+from app.routes.auth import auth_bp
 from app.routes.health import health_bp
+from app.services.integration_errors import IntegrationError
+from app.utils.safe_logging import install_oauth_log_filter
 
 
 def create_app(settings: Settings | None = None) -> Flask:
@@ -15,8 +20,11 @@ def create_app(settings: Settings | None = None) -> Flask:
     app.config.update(
         SECRET_KEY=settings.secret_key.get_secret_value() if settings.secret_key else None,
         SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_NAME="mailkind_session",
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=settings.session_cookie_secure,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        SESSION_REFRESH_EACH_REQUEST=False,
     )
     app.extensions["settings"] = settings
     app.extensions["database"] = (
@@ -26,7 +34,16 @@ def create_app(settings: Settings | None = None) -> Flask:
         app, resources={r"/api/*": {"origins": [settings.frontend_url]}}, supports_credentials=True
     )
     app.register_blueprint(health_bp, url_prefix="/api")
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    install_oauth_log_filter()
     if settings.enable_dev_analysis:
         app.register_blueprint(analysis_bp, url_prefix="/api")
     app.register_error_handler(HTTPException, handle_http_error)
+
+    @app.errorhandler(IntegrationError)
+    def integration_error(error: IntegrationError) -> tuple[Response, int]:
+        return jsonify(
+            success=False, error={"code": error.code, "message": error.message}
+        ), error.status
+
     return app

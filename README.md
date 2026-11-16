@@ -13,12 +13,15 @@ Initial monorepo setup based on [the architecture](docs/ARCHITECTURE.md).
   Google OAuth and a read-only Gmail client.
 - Five SQLAlchemy domain models, ownership-scoped repositories, and an initial Alembic migration.
 
-There are no authentication endpoints, Gmail synchronization,
-live inbox dashboard, or deployment configuration. Phase 2 analyzes supplied plain-text
+Phase 4 adds Google OAuth endpoints, encrypted refresh tokens, read-only Gmail retrieval,
+and homepage connection controls. Live consent, refresh, read, disconnect, and reconnect
+passed; see `docs/TASKS.md` for verification details.
+There is no Gmail synchronization, live inbox dashboard, or deployment configuration.
+Phase 2 analyzes supplied plain-text
 synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
 Phase 2 is complete for synthetic-email analysis: the fixed free ERNIE model passed
-all eight evaluation cases and manual review. Real-email privacy review, Gmail access,
-and the live persistence pipeline remain later work; free-model capacity can still be rate limited.
+all eight evaluation cases and manual review. Real-email AI-provider privacy review
+and the live processing pipeline remain later work; free-model capacity can still be rate limited.
 Client factories do not call external services during application startup.
 
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
@@ -139,10 +142,11 @@ See each `.env.example` for the complete variable list.
   URLs are normalized to `postgresql+psycopg://`. The application creates a lazy engine
   only when configured. Future repositories can use
   `app.extensions["database"].session_factory.begin()` for transaction-scoped sessions.
-- **Google:** supply web application client credentials and register the exact
-  `GOOGLE_REDIRECT_URI`. Only the `gmail.readonly` scope is configured. The OAuth factory
-  does not start authorization, handle callbacks, store credentials, or create sessions.
-  The Gmail client requires credentials supplied by the caller.
+- **Google:** follow the [Phase 4 setup guide](docs/TASKS.md#phase-4-setup-and-testing-guide).
+  Supply web client credentials and register the exact `GOOGLE_REDIRECT_URI`. OAuth uses
+  only `gmail.readonly`, state, and PKCE. The connection panel uses `/api/auth/status`,
+  `/api/auth/google`, and CSRF-protected `/api/auth/disconnect`; Google returns to
+  `/api/auth/google/callback`. Accounts are identified with Gmail's authenticated profile.
 - **OpenRouter:** supply an API key locally and use
   `OPENROUTER_MODEL=baidu/ernie-5.5-flash-preview:free`.
   Set `ENABLE_DEV_ANALYSIS=true` only for local synthetic-email testing. The development
@@ -150,8 +154,18 @@ See each `.env.example` for the complete variable list.
   timeout per attempt, and at most two attempts overall; SDK retries are disabled.
   The selected model is fixed, and no automatic model fallback is configured. See
   [request examples and evaluation instructions](docs/TASKS.md#phase-2-analysis-and-testing-guide).
-- **Token encryption:** `TOKEN_ENCRYPTION_KEY` is reserved for later credential storage.
-  No OAuth tokens are persisted by this skeleton.
+- **Token encryption:** set `TOKEN_ENCRYPTION_KEY` to a Fernet key. Refresh tokens are
+  encrypted before database storage; access tokens are held in request memory. Keep the
+  key stable across restarts. A lost/replaced key requires accounts to reconnect.
+
+Sessions use a signed HttpOnly `mailkind_session` cookie with SameSite=Lax and an
+eight-hour lifetime. Set `SESSION_COOKIE_SECURE=true` with production HTTPS. Tokens are
+never stored in cookies; authenticated status responses include a CSRF token for mutations.
+Use `localhost` consistently across ports 5173 and 5000 during local OAuth testing.
+Disconnect removes stored credentials and the current cookie, retaining saved content.
+If remote revocation fails, the UI explains how to remove access in the Google Account.
+Configure hosted access logs to omit callback query strings; the local Werkzeug filter
+redacts them. Production hosting and cross-site cookie deployment remain Phase 10 work.
 
 Missing integration credentials do not prevent the health endpoint from starting.
 Flask uses `--debug`; the removed `FLASK_ENV` setting is intentionally omitted.
@@ -235,7 +249,7 @@ with database.session_factory.begin() as session:
 ```
 
 The existing Flask extension supplies `database = app.extensions["database"]`.
-Phase 4 will persist OAuth users and encrypted Gmail connections; Phase 5 will persist
+Phase 4 persists OAuth users and encrypted Gmail connections; Phase 5 will persist
 synchronized messages and validated results from `analyze_email()`. Provider calls stay
 outside database transactions. `/api/dev/analyze` remains stateless.
 
@@ -244,7 +258,8 @@ Analysis attempts preserve history; the latest completed attempt is selected by 
 time and UUID as a tie-breaker. Actions are created explicitly by the user, and must refer
 to their own emails. User deletion cascades to dependent records. Gmail disconnection
 retains email history and clears the encrypted refresh token. The connection repository
-expects caller-encrypted ciphertext; encryption and OAuth entry points arrive in Phase 4.
+expects caller-encrypted ciphertext, now supplied by the Phase 4 auth service.
+Conditional refresh writes cannot restore a disconnected connection.
 
 After changing Python dependencies, regenerate the lock and pip export:
 

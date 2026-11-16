@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { InboxPreview } from '../components/InboxPreview'
+import { GmailConnection } from '../components/GmailConnection'
 
 const navigation = [
   { label: 'How it works', href: '#how-it-works' },
@@ -185,6 +186,7 @@ export default function HomePage() {
           </div>
           <InboxPreview />
         </section>
+        <GmailConnection />
         <section
           id="how-it-works"
           className="content-container section-space scroll-mt-8"

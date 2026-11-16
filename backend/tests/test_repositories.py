@@ -193,3 +193,43 @@ def test_delete_cascades(db_session: Session, sample: Sample) -> None:
         (User, GmailConnection, Email, EmailAnalysisRecord, ActionItem), ids, strict=True
     ):
         assert db_session.scalar(select(model).where(model.id == record_id)) is None
+
+
+def test_credential_updates_cannot_restore_disconnected_account(
+    db_session: Session, sample: Sample
+) -> None:
+    user, _, email = sample
+    connections.save_connection(
+        db_session,
+        user.id,
+        gmail_address=user.email,
+        scopes=[],
+        status="connected",
+        encrypted_refresh_token="synthetic-old-ciphertext",
+    )
+    assert connections.update_credentials_if_current(
+        db_session,
+        user.id,
+        previous_ciphertext="synthetic-old-ciphertext",
+        status="connected",
+        encrypted_refresh_token="synthetic-new-ciphertext",
+    )
+    assert not connections.update_credentials_if_current(
+        db_session,
+        user.id,
+        previous_ciphertext="synthetic-old-ciphertext",
+        status="connected",
+        encrypted_refresh_token="stale-write",
+    )
+    connections.disconnect_connection(db_session, user.id)
+    assert not connections.update_credentials_if_current(
+        db_session,
+        user.id,
+        previous_ciphertext="synthetic-new-ciphertext",
+        status="connected",
+        encrypted_refresh_token="late-write",
+    )
+    connection = connections.get_connection(db_session, user.id)
+    assert connection.status == "disconnected"
+    assert connection.encrypted_refresh_token is None
+    assert emails.get_email(db_session, user.id, email.id) is not None

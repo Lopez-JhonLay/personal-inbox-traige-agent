@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import GmailConnection
@@ -35,6 +35,27 @@ def save_connection(
         connection.encrypted_refresh_token = encrypted_refresh_token
     session.flush()
     return connection
+
+
+def update_credentials_if_current(
+    session: Session,
+    user_id: UUID,
+    *,
+    previous_ciphertext: str,
+    status: str,
+    encrypted_refresh_token: str | None,
+) -> bool:
+    """Do not restore a connection that was disconnected during a provider call."""
+    result = session.execute(
+        update(GmailConnection)
+        .where(
+            GmailConnection.user_id == user_id,
+            GmailConnection.status == "connected",
+            GmailConnection.encrypted_refresh_token == previous_ciphertext,
+        )
+        .values(status=status, encrypted_refresh_token=encrypted_refresh_token)
+    )
+    return result.rowcount == 1
 
 
 def disconnect_connection(session: Session, user_id: UUID) -> GmailConnection | None:
