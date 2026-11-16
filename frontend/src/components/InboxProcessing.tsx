@@ -1,157 +1,48 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useProcessingCounts } from '../hooks/useEmails'
 import {
-  analyzeStoredEmail,
-  EmailApiError,
-  listStoredEmails,
-  syncInbox,
-} from '../services/emails'
+  type ProcessingAction,
+  useInboxProcessing,
+} from '../hooks/useInboxProcessing'
+import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
+import { EmptyState } from './ui/EmptyState'
+import { ErrorState } from './ui/ErrorState'
+import { LoadingIndicator } from './ui/LoadingIndicator'
 
 export function InboxProcessing({
-  csrfToken,
+  userId,
   syncQuery,
+  disabled = false,
   onBusyChange,
 }: {
-  csrfToken: string
+  userId: string
   syncQuery: string
+  disabled?: boolean
   onBusyChange: (busy: boolean) => void
 }) {
-  const [busy, setBusy] = useState(false)
-  const [counts, setCounts] = useState({ pending: 0, completed: 0, failed: 0 })
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [action, setAction] = useState<'sync' | 'pending' | 'failed'>('sync')
+  const counts = useProcessingCounts(userId)
+  const processing = useInboxProcessing(userId)
+  const [action, setAction] = useState<ProcessingAction>('sync')
   const dialog = useRef<HTMLDialogElement>(null)
-  const active = useRef(true)
-  const running = useRef(false)
-
-  const refreshCounts = useCallback(async () => {
-    const [pending, processing, completed, failed] = await Promise.all([
-      listStoredEmails('pending', 1),
-      listStoredEmails('processing', 1),
-      listStoredEmails('completed', 1),
-      listStoredEmails('failed', 1),
-    ])
-    if (active.current)
-      setCounts({
-        pending: pending.total + processing.total,
-        completed: completed.total,
-        failed: failed.total,
-      })
-  }, [])
-
+  const busy = processing.isRunning
   useEffect(() => {
-    active.current = true
-    refreshCounts().catch(() => {
-      if (active.current)
-        setError(
-          'Could not load stored processing counts. Reload to try again.',
-        )
-    })
-    return () => {
-      active.current = false
-    }
-  }, [refreshCounts])
+    onBusyChange(busy)
+  }, [busy, onBusyChange])
 
-  function confirm(next: typeof action) {
+  function confirm(next: ProcessingAction) {
     setAction(next)
     dialog.current?.showModal()
   }
-
-  async function run() {
-    if (running.current) return
-    running.current = true
+  function start() {
     dialog.current?.close()
-    setBusy(true)
-    onBusyChange(true)
-    setError('')
-    setMessage('Preparing emails…')
-    try {
-      let ids: string[]
-      let imported = ''
-      if (action === 'sync') {
-        const result = await syncInbox(csrfToken)
-        imported = `${result.imported} imported, ${result.existing} already stored, ${result.failed} import failures, ${result.deferred} deferred. `
-        if (result.errors.length) setError(result.errors[0].message)
-        ids = result.pending_email_ids
-        if (
-          result.errors.some((item) =>
-            [
-              'GMAIL_RATE_LIMITED',
-              'GMAIL_REAUTH_REQUIRED',
-              'OPERATION_EXPIRED',
-            ].includes(item.code),
-          )
-        )
-          ids = []
-      } else if (action === 'failed') {
-        ids = (await listStoredEmails('failed')).emails.map((email) => email.id)
-      } else {
-        const [pending, processing] = await Promise.all([
-          listStoredEmails('pending'),
-          listStoredEmails('processing'),
-        ])
-        ids = [
-          ...new Set(
-            [...processing.emails, ...pending.emails].map((email) => email.id),
-          ),
-        ].slice(0, 20)
-      }
-      let done = 0
-      let failed = 0
-      for (const [index, id] of ids.entries()) {
-        if (!active.current) break
-        setMessage(`${imported}Analyzing ${index + 1} of ${ids.length}…`)
-        try {
-          await analyzeStoredEmail(id, csrfToken)
-          done++
-        } catch (cause) {
-          failed++
-          if (!(cause instanceof EmailApiError)) throw cause
-          setError(cause.message)
-          if (
-            [
-              'AI_RATE_LIMITED',
-              'OPERATION_IN_PROGRESS',
-              'OPERATION_EXPIRED',
-              'AUTH_REQUIRED',
-              'GMAIL_REAUTH_REQUIRED',
-              'AI_NOT_CONFIGURED',
-              'DATABASE_UNAVAILABLE',
-              'NETWORK_ERROR',
-            ].includes(cause.code)
-          ) {
-            setError(
-              `${cause.message}${cause.retryAfter ? ` Retry after ${cause.retryAfter}.` : ''} Remaining work is saved.`,
-            )
-            break
-          }
-        }
-      }
-      if (active.current)
-        setMessage(
-          `${imported}${done} analyzed, ${failed} analysis failures in this run. Pending work can be continued below.`,
-        )
-    } catch (cause) {
-      if (active.current)
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Processing failed. Please try again.',
-        )
-    } finally {
-      running.current = false
-      if (active.current) {
-        setBusy(false)
-        onBusyChange(false)
-        await refreshCounts().catch(() =>
-          setError('Could not refresh counts. Reload to check saved progress.'),
-        )
-      }
-    }
+    void processing.run(action)
   }
+  const empty =
+    counts.data && Object.values(counts.data).every((count) => count === 0)
 
   return (
-    <div className="mt-6 border-t border-line pt-5">
+    <div className="mt-6 border-t border-line pt-5" aria-busy={busy}>
       <h3 className="text-lg">Process your inbox</h3>
       <p className="mt-2 text-sm text-muted">
         Sync saves email text in Mailkind and sends pending messages to the
@@ -165,44 +56,67 @@ export function InboxProcessing({
           ? `Inbox filter: ${syncQuery}`
           : 'Import scope: recent inbox messages.'}
       </p>
-      <p className="mt-3 text-sm">
-        {counts.pending} pending · {counts.completed} analyzed · {counts.failed}{' '}
-        failed
-      </p>
+      {counts.isPending && (
+        <div className="mt-3">
+          <LoadingIndicator label="Loading processing counts…" />
+        </div>
+      )}
+      {counts.data && (
+        <section
+          className="cluster mt-3 gap-2"
+          aria-label="Stored processing counts"
+        >
+          <Badge>{counts.data.pending} pending</Badge>
+          <Badge tone="success">{counts.data.completed} analyzed</Badge>
+          <Badge tone={counts.data.failed ? 'warning' : 'neutral'}>
+            {counts.data.failed} failed
+          </Badge>
+        </section>
+      )}
+      {empty && (
+        <EmptyState
+          title="No emails imported yet"
+          message="Start with Sync Inbox when your test messages are ready."
+        />
+      )}
+      {counts.isError && (
+        <ErrorState
+          message="Could not refresh processing counts. Saved progress is unchanged."
+          onRetry={() => {
+            void counts.refetch()
+          }}
+          retrying={counts.isFetching}
+        />
+      )}
       <div className="cluster mt-4 gap-3">
-        <button
-          type="button"
-          className="button text-sm"
-          disabled={busy}
+        <Button
+          className="text-sm"
+          disabled={busy || disabled}
           onClick={() => confirm('sync')}
         >
           Sync Inbox
-        </button>
-        <button
-          type="button"
-          className="button button-secondary text-sm"
-          disabled={busy || counts.pending === 0}
+        </Button>
+        <Button
+          variant="secondary"
+          className="text-sm"
+          disabled={busy || disabled || !counts.data?.pending}
           onClick={() => confirm('pending')}
         >
           Continue analysis
-        </button>
-        <button
-          type="button"
-          className="button button-secondary text-sm"
-          disabled={busy || counts.failed === 0}
+        </Button>
+        <Button
+          variant="secondary"
+          className="text-sm"
+          disabled={busy || disabled || !counts.data?.failed}
           onClick={() => confirm('failed')}
         >
           Retry failed
-        </button>
+        </Button>
       </div>
       <p role="status" aria-live="polite" className="mt-3 text-sm">
-        {message}
+        {processing.message}
       </p>
-      {error && (
-        <p role="alert" className="mt-3 text-sm">
-          {error}
-        </p>
-      )}
+      {processing.error && <ErrorState message={processing.error} />}
       <dialog
         ref={dialog}
         aria-labelledby="processing-title"
@@ -225,16 +139,12 @@ export function InboxProcessing({
           <p className="mt-3 text-sm">Inbox filter: {syncQuery}</p>
         )}
         <div className="cluster mt-5 gap-3">
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={() => dialog.current?.close()}
-          >
+          <Button variant="secondary" onClick={() => dialog.current?.close()}>
             Cancel
-          </button>
-          <button type="button" className="button" onClick={run}>
+          </Button>
+          <Button onClick={start} disabled={disabled || busy}>
             Continue
-          </button>
+          </Button>
         </div>
       </dialog>
     </div>

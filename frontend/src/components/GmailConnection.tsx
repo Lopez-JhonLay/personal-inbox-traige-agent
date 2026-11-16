@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuthStatus, useDisconnectGmail } from '../hooks/useAuth'
+import { googleConnectUrl } from '../services/auth'
 import { InboxProcessing } from './InboxProcessing'
-import {
-  type ConnectionStatus,
-  disconnectGmail,
-  getConnectionStatus,
-  googleConnectUrl,
-} from '../services/auth'
+import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
+import { ErrorState } from './ui/ErrorState'
+import { LoadingIndicator } from './ui/LoadingIndicator'
 
 const callbackMessages: Record<string, string> = {
   connected: 'Gmail connected.',
@@ -22,14 +22,12 @@ const callbackMessages: Record<string, string> = {
 }
 
 export function GmailConnection() {
-  const [status, setStatus] = useState<ConnectionStatus | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
+  const auth = useAuthStatus()
+  const status = auth.data
+  const disconnect = useDisconnectGmail(status?.user_id ?? null)
   const [processing, setProcessing] = useState(false)
-  const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const dialog = useRef<HTMLDialogElement>(null)
-
   useEffect(() => {
     const url = new URL(window.location.href)
     const outcome = url.searchParams.get('gmail')
@@ -42,60 +40,27 @@ export function GmailConnection() {
       url.searchParams.delete('gmail')
       window.history.replaceState(null, '', url)
     }
-    let active = true
-    getConnectionStatus()
-      .then((result) => {
-        if (active) setStatus(result)
-      })
-      .catch(() => {
-        if (active)
-          setError(
-            'Gmail connection is unavailable. You can still try the sample inbox.',
-          )
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => {
-      active = false
-    }
   }, [])
 
-  async function disconnect() {
-    if (!status?.csrf_token) return
-    setBusy(true)
-    setError('')
+  async function confirmDisconnect() {
     try {
-      const revoked = await disconnectGmail(status.csrf_token)
-      setStatus({
-        ...status,
-        authenticated: false,
-        email: null,
-        user_id: null,
-        connection_status: 'disconnected',
-        csrf_token: null,
-      })
+      const revoked = await disconnect.mutateAsync()
       setNotice(
         revoked
           ? 'Gmail disconnected.'
           : 'Disconnected locally. Google access could not be revoked; remove Mailkind access in your Google Account.',
       )
       dialog.current?.close()
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not disconnect Gmail.',
-      )
-    } finally {
-      setBusy(false)
+    } catch {
+      /* The mutation error is rendered below; never replay automatically. */
     }
   }
-
   const connected =
     status?.authenticated && status.connection_status === 'connected'
   const reconnect =
     status?.authenticated &&
     status.connection_status === 'reauthorization_required'
-
+  const disabled = auth.isError || disconnect.isPending || processing
   return (
     <section
       id="gmail-connection"
@@ -108,19 +73,35 @@ export function GmailConnection() {
             <h2 id="gmail-title" className="text-xl">
               Your Gmail connection
             </h2>
-            <p className="mt-2 break-words text-sm text-muted">
-              {loading
-                ? 'Checking connection…'
-                : connected
-                  ? `Connected as ${status.email}`
-                  : reconnect
-                    ? `Reconnect ${status.email} to restore access.`
-                    : status?.configured
-                      ? 'Connect your account with read-only access.'
-                      : 'Gmail connection is not available yet.'}
-            </p>
+            {auth.isPending ? (
+              <div className="mt-2">
+                <LoadingIndicator label="Checking connection…" />
+              </div>
+            ) : (
+              status && (
+                <p className="mt-2 break-words text-sm text-muted">
+                  {connected
+                    ? `Connected as ${status.email}`
+                    : reconnect
+                      ? `Reconnect ${status.email} to restore access.`
+                      : status.configured
+                        ? 'Connect your account with read-only access.'
+                        : 'Gmail connection is not available yet.'}
+                </p>
+              )
+            )}
+            {connected && (
+              <div className="mt-2">
+                <Badge tone="success">Connected</Badge>
+              </div>
+            )}
+            {reconnect && (
+              <div className="mt-2">
+                <Badge tone="warning">Reconnect required</Badge>
+              </div>
+            )}
           </div>
-          {!loading && status?.configured && (
+          {status?.configured && !auth.isError && (
             <div className="cluster gap-3">
               {!connected && (
                 <a className="button text-sm" href={googleConnectUrl()}>
@@ -128,14 +109,17 @@ export function GmailConnection() {
                 </a>
               )}
               {status.authenticated && (
-                <button
-                  className="button button-secondary text-sm"
-                  type="button"
-                  disabled={processing}
-                  onClick={() => dialog.current?.showModal()}
+                <Button
+                  variant="secondary"
+                  className="text-sm"
+                  disabled={disabled}
+                  onClick={() => {
+                    disconnect.reset()
+                    dialog.current?.showModal()
+                  }}
                 >
                   Disconnect
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -147,15 +131,24 @@ export function GmailConnection() {
         <p className="mt-3 text-sm" role="status">
           {notice}
         </p>
-        {error && (
-          <p className="mt-3 text-sm" role="alert">
-            {error}
-          </p>
+        {auth.isError && (
+          <ErrorState
+            message="Gmail connection is unavailable. You can still try the sample inbox."
+            onRetry={() => {
+              void auth.refetch()
+            }}
+            retrying={auth.isFetching}
+          />
         )}
-        {connected && status.csrf_token && (
+        {disconnect.isError && (
+          <ErrorState message={disconnect.error.message} />
+        )}
+        {connected && status.user_id && (
           <InboxProcessing
-            csrfToken={status.csrf_token}
+            key={status.user_id}
+            userId={status.user_id}
             syncQuery={status.sync_query}
+            disabled={auth.isError || disconnect.isPending}
             onBusyChange={setProcessing}
           />
         )}
@@ -164,7 +157,7 @@ export function GmailConnection() {
           aria-labelledby="disconnect-title"
           className="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-panel border-2 border-ink bg-paper p-6 text-ink backdrop:bg-ink/40"
           onCancel={(event) => {
-            if (busy) event.preventDefault()
+            if (disconnect.isPending) event.preventDefault()
           }}
         >
           <h3 id="disconnect-title" className="text-xl">
@@ -175,27 +168,19 @@ export function GmailConnection() {
             in Mailkind.
           </p>
           <div className="mt-6 cluster gap-3">
-            <button
-              type="button"
-              className="button button-secondary"
-              disabled={busy}
+            <Button
+              variant="secondary"
+              disabled={disconnect.isPending}
               onClick={() => dialog.current?.close()}
             >
               Cancel
-            </button>
-            <button
-              type="button"
-              className="button"
-              disabled={busy}
-              onClick={disconnect}
-            >
-              {busy ? 'Disconnecting…' : 'Disconnect Gmail'}
-            </button>
+            </Button>
+            <Button busy={disconnect.isPending} onClick={confirmDisconnect}>
+              {disconnect.isPending ? 'Disconnecting…' : 'Disconnect Gmail'}
+            </Button>
           </div>
-          {error && (
-            <p className="mt-3 text-sm" role="alert">
-              {error}
-            </p>
+          {disconnect.isError && (
+            <ErrorState message={disconnect.error.message} />
           )}
         </dialog>
       </div>

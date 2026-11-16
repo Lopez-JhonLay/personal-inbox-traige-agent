@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.11\
-**Status:** In Progress — Phases 0 through 5 Complete; Phase 6 Next\
+**Version:** 1.12\
+**Status:** In Progress — Phases 0 through 5 Complete; Phase 6 Automated Checks Passed\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -1014,7 +1014,7 @@ production function time limits in Phase 10; Phase 5 uses bounded synchronous re
 # Phase 6 — React Frontend Foundation
 
 
-**Status:** In Progress — Homepage and Sample Interactions Verified; Live API UI and Server State Pending
+**Status:** In Progress — Foundation Implemented and Automated Tests Passed; Manual Browser Review Pending
 
 ## Objective
 
@@ -1038,7 +1038,7 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] Configure the Tailwind Vite plugin, global CSS, and semantic design system.
 - [x] Configure Biome instead of ESLint for TypeScript 7 compatibility.
 - [x] Configure Prettier.
-- [x] Configure environment variable support and `.env.example` (local credentials not populated).
+- [x] Configure public frontend environment variables and `.env.example`; keep credentials backend-only.
 - [x] Verify the React development server works.
 
 ### 6.1a Global Design System (Authorized Before Phase 2)
@@ -1076,23 +1076,23 @@ Initialize React and establish the frontend architecture, API communication, and
 
 - [x] Configure backend API base URL and local Vite proxy.
 - [x] Create a reusable fetch wrapper in `src/services/api.ts`.
-- [ ] Add HTTP error handling.
-- [x] Configure fetch to include cookies (authenticated sessions are not implemented).
-- [x] Configure CORS and cookie defaults with Flask (production/session validation pending).
-- [ ] Add CSRF protection for state-changing requests.
-- [ ] Install TanStack Query.
-- [ ] Configure QueryClientProvider.
-- [ ] Create reusable data-fetching hooks.
+- [x] Add HTTP error handling.
+- [x] Configure fetch to include cookies (authenticated sessions implemented in Phase 4).
+- [x] Configure CORS and cookie defaults with Flask (local sessions verified; hosted validation remains Phase 10).
+- [x] Add CSRF protection for state-changing requests.
+- [x] Install TanStack Query.
+- [x] Configure QueryClientProvider.
+- [x] Create reusable data-fetching hooks.
 
 ### 6.4 Shared UI Components
 
 - [x] Create homepage application layout (live dashboard layout remains pending).
 - [x] Create responsive homepage header/navigation.
-- [ ] Create reusable buttons.
-- [ ] Create badges.
-- [ ] Create loading indicators.
-- [ ] Create empty-state components.
-- [ ] Create error-state components.
+- [x] Create reusable buttons.
+- [x] Create badges.
+- [x] Create loading indicators.
+- [x] Create empty-state components.
+- [x] Create error-state components.
 - [x] Establish responsive styling patterns.
 
 ## Phase Completion Checklist
@@ -1100,10 +1100,72 @@ Initialize React and establish the frontend architecture, API communication, and
 - [x] React application runs locally with the homepage and fictional inbox preview.
 - [x] Tailwind CSS compiles successfully.
 - [x] Local API proxy communication works for the health endpoint.
-- [ ] TanStack Query is configured.
-- [ ] Shared UI foundation is ready.
+- [x] TanStack Query is configured.
+- [x] Shared UI foundation is ready.
 
 **Deliverable:** React frontend foundation connected to Flask.
+
+## Phase 6 Verification Guide
+
+The existing homepage and fictional demo remain. Only the live Gmail and processing controls
+were refactored. The dashboard remains Phase 7. Backend endpoints and database schema are unchanged.
+
+### Shared foundation
+
+- Shared API handling lives in `services/api.ts`. ApiError exposes safe public errors, HTTP
+  status/code, and Retry-After. Cookies are included and mutation CSRF headers are centralized.
+- QueryClientProvider wraps the app. Cache is memory-only, fresh for 30 seconds, and unused
+  responses expire after five minutes. Private email query keys include the account's user ID.
+- Authenticated hooks enable private counts only after identity is known. Four existing status
+  count endpoints are reused; no new backend count endpoint was introduced.
+- Disconnect/session expiry/account changes cancel private reads and remove private query and
+  mutation caches. Late responses cannot restore removed cache entries. Gmail reauthorization
+  preserves the signed-in identity and stored data; transient network errors do not sign out.
+- Sync and analyze mutations have no automatic retry or offline queue. Each request reads the
+  current CSRF token. A rejected token refreshes auth state but never replays the mutation.
+- The processing hook retains sequential requests, explicit confirmation, pause-on-rate-limit,
+  and unmount/account-change cancellation of further scheduling. In-flight requests may finish.
+- Mutations invalidate the affected account's email queries, including failed analyses whose
+  failed status was persisted. Background GET refreshes and Retry buttons do not invoke AI.
+- Shared Button/Badge/LoadingIndicator/EmptyState/ErrorState components use the existing design
+  system. Fetched data stays in the query cache; only dialogs, notices, and run progress use
+  local component state. Cached counts stay visible when a refresh fails.
+
+### Automated verification
+
+```powershell
+npm --prefix frontend run test
+npm --prefix frontend run lint
+npm --prefix frontend run format:check
+npm --prefix frontend run build
+uv run --project backend pytest backend/tests
+```
+
+37 frontend tests passed across API handling, auth/cache isolation, current-token mutation
+behavior, sequential processing, rate limits, no offline replay, unmount handling, and live
+control states/keyboard actions. All requests are mocked; unmocked fetches are blocked.
+Vitest, jsdom, React Testing Library, user-event, and jest-dom are development dependencies.
+Frontend lint and production build passed. The existing 134 offline backend tests passed;
+15 opt-in Neon tests were skipped because the backend and schema did not change.
+
+### Manual review (pending)
+
+1. Reload `http://localhost:5173/#gmail-connection`. Connect Gmail yourself if the session
+   expired. Existing imported data can be used; no new live inference is needed for this phase.
+2. Confirm the account and stored processing counts load. Temporarily unavailable counts
+   should show an error and a read-only Retry button, retaining the last known counts.
+3. Check the controls at desktop and narrow mobile widths (320px). Counts and buttons should
+   wrap without overflow. Tab through controls and open/cancel confirmation dialogs using
+   the keyboard. Confirmation must still precede any new sync/analysis operation.
+4. Optional: manually disconnect after reviewing the confirmation. The account and private
+   counts should disappear. Reconnect only when desired. These live mutations are not run
+   automatically by implementation tests.
+
+Computer-use could inspect the existing Mailkind window, but stopped before reloading because
+it could not verify the Windows browser URL confidently enough to enforce policy. Native
+browser interaction was stopped; no sync, inference, or disconnect action was performed.
+Desktop/mobile visual acceptance remains pending. Automated dialog tests use a jsdom shim;
+they do not replace real-browser focus-trap and Escape verification.
 
 ---
 
@@ -1128,12 +1190,12 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 ### 7.1 Welcome & Gmail Connection
 
-- [x] Create welcome homepage with a sample inbox (no live Gmail connection).
-- [ ] Add Connect Gmail button.
-- [ ] Integrate OAuth redirect flow.
-- [ ] Display Gmail connection status.
-- [ ] Handle failed connections.
-- [ ] Handle disconnected accounts.
+- [x] Create welcome homepage with a fictional sample inbox and separate live connection controls.
+- [x] Add Connect Gmail button.
+- [x] Integrate OAuth redirect flow.
+- [x] Display Gmail connection status.
+- [x] Handle failed connections.
+- [x] Handle disconnected accounts.
 
 ### 7.2 Dashboard Overview
 
@@ -1299,8 +1361,8 @@ Validate the application's functionality, AI accuracy, reliability, and security
 
 ### 9.2 Frontend Testing
 
-- [ ] Configure Vitest.
-- [ ] Install React Testing Library.
+- [x] Configure Vitest (brought forward into Phase 6).
+- [x] Install React Testing Library (brought forward into Phase 6).
 - [ ] Test email list rendering.
 - [ ] Test priority and category display.
 - [ ] Test loading and empty states.
@@ -1348,7 +1410,7 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [x] Run TypeScript type checks and Vite production build.
 - [x] Run Ruff checks.
 - [x] Run backend setup tests (five passed; feature tests remain pending).
-- [ ] Run frontend tests.
+- [x] Run frontend foundation tests (37 passed; dashboard/action feature tests remain future work).
 - [ ] Fix relevant errors and warnings.
 - [x] Update documentation to reflect the current scaffold and Git setup (MVP documentation remains ongoing).
 
@@ -1554,7 +1616,8 @@ The MVP is considered complete when all of the following are satisfied.
 
 ## Development History
 
-All milestones below were recorded on November 16, 2026. Detailed implementation
+Initial milestones were recorded on November 16, 2026; Phase 6 work was recorded on
+November 17, 2026. Detailed implementation
 rules remain in the shared references; phase-specific verification is recorded below.
 
 - **Phase 0:** Initialized the React/Flask stack, locked dependencies, environment
@@ -1587,6 +1650,10 @@ rules remain in the shared references; phase-specific verification is recorded b
   controls. Local import scope is `label:mailkind-test`. Automated tests passed; the user
   verified completed analyses for two synthetic messages and unchanged results on repeat
   sync. Phase 5 is complete. No dashboard was added.
+- **Phase 6 implementation (November 17):** Added shared API errors/CSRF handling, in-memory
+  TanStack Query hooks and cache isolation, reusable live controls, and 37 mocked frontend
+  tests. Existing backend tests and frontend checks passed; browser policy prevented the
+  final visual review, which remains pending. No backend schema or dashboard was added.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1597,13 +1664,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 6 — React Frontend Foundation (next)\
+**Current Phase:** Phase 6 — React Frontend Foundation (implementation ready; manual review pending)\
 **Current Status:** Phases 0 through 5 Complete; Gmail-to-AI Pipeline Verified with Synthetic Messages; Frontend Foundation and Live Dashboard Work Remain
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.11\
+**Document Version:** 1.12\
 **Status:** Active Development Tracker  
-**Last Updated:** November 16, 2026
+**Last Updated:** November 17, 2026

@@ -31,6 +31,7 @@ Vite proxies `/api` from port 5173 to Flask on port 5000.
 - `npm --prefix frontend run build`: type-check and build.
 - `npm --prefix frontend run lint`: run Biome.
 - `npm --prefix frontend run format:check`: check Prettier formatting.
+- `npm --prefix frontend run test`: run Vitest and React Testing Library tests.
 - `uv run --project backend ruff check backend`: lint Python.
 - `uv run --project backend ruff format --check backend`: check Python formatting.
 - `uv run --project backend pytest backend/tests`: run backend tests.
@@ -47,7 +48,8 @@ use Prettier and Ruff for formatting.
 
 Name backend tests `test_*.py` and test functions `test_*`. Cover changed behavior and
 failure cases; mock external services. Routine tests must not contact Gmail, OpenRouter,
-or Neon. No numeric coverage threshold or frontend test runner is configured.
+or Neon. Frontend tests use Vitest, jsdom, and React Testing Library with mocked requests.
+No numeric coverage threshold is configured.
 
 ## Commit & Pull Request Guidelines
 

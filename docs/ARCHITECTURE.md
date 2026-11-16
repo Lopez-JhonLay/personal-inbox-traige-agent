@@ -37,6 +37,14 @@ sequential per-email processing, email APIs, and homepage progress controls. Syn
 live acceptance passed for two messages and repeat sync; dashboard features and deployment
 remain later work.
 
+Phase 6 introduces a stable QueryClientProvider, shared typed API/error/CSRF handling,
+account-scoped email query keys, memory-only caching, and shared live UI primitives. Auth,
+counts, and mutations use reusable hooks; batch progress and dialogs remain local state.
+Automatic retries and offline mutation replay are disabled. Logout and identity changes
+cancel private reads and clear private caches; temporary failures retain cached counts.
+The existing API/schema and fictional demo are unchanged. 37 mocked frontend tests pass;
+manual browser review remains pending because computer-use could not verify the browser URL.
+
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
 for detailed progress and `README.md` for current commands and configuration.
@@ -1213,5 +1221,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Phase 6 frontend foundation. Phases 0 through 5 are complete;
+**Next Step:** Complete Phase 6 manual review, then plan the Phase 7 dashboard;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

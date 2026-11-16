@@ -19,6 +19,8 @@ passed; see `docs/TASKS.md` for verification details.
 Phase 5 adds bounded Gmail synchronization, stored email APIs, and sequential analysis
 controls on the homepage. Two-message synthetic live acceptance and repeat sync passed;
 verification details are tracked in `docs/TASKS.md`.
+Phase 6 introduces shared API handling, memory-only TanStack Query state, reusable live
+controls, and focused frontend tests. Manual browser acceptance is tracked in `docs/TASKS.md`.
 There is no live inbox dashboard or deployment configuration.
 Phase 2 analyzes supplied plain-text
 synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
@@ -215,6 +217,31 @@ Backend tests cover setup, health/CORS, safe API errors, analysis schemas, reque
 contracts, mocked OpenRouter responses, retry bounds, and the live-evaluation budget.
 They do not access Gmail, OpenRouter, or Neon. Routes used to induce errors exist
 only inside the tests. The evaluation script is a separate, opt-in network operation.
+
+## Frontend foundation
+
+`src/services/api.ts` parses the API envelope, sends cookies, adds CSRF headers for mutations,
+and reports `ApiError` with status/code/Retry-After. GET helpers accept cancellation signals.
+`src/hooks/` owns auth, counts, mutations, and the sequential processing workflow. Components
+use fetched state directly rather than copying it into local state. Shared buttons, badges,
+loading, empty, and error states live in `src/components/ui/`; the fictional preview is unchanged.
+
+TanStack Query caches responses only in memory, fresh for 30 seconds, with unused data removed
+after five minutes. Email keys include the user ID. Disconnect, expired sessions, and account
+changes cancel private reads and clear private cached query/mutation data. Temporary network
+failures retain cached counts; Gmail reauthorization does not sign the user out. Mutations use
+the current CSRF token for every request and are never automatically retried or queued offline.
+Queries can refresh on mount/focus/reconnect, but those GET requests never trigger inference.
+Only the existing confirmation workflow starts sync or analysis.
+
+```powershell
+npm --prefix frontend run test
+```
+
+The Vitest/jsdom/React Testing Library suite mocks all requests and blocks unmocked fetches.
+It never contacts Flask, Gmail, OpenRouter, or Neon. Backend tests remain separate. In Codex's
+managed Windows sandbox, Vitest worker processes may require the normal execution permission;
+no app security settings need to be changed. See the Phase 6 guide for manual acceptance.
 
 ## Inbox processing
 

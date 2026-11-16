@@ -80,7 +80,8 @@ npm with `frontend/package-lock.json`, and uv with `backend/uv.lock`.
 `backend/requirements.txt` is generated from uv; regenerate it when dependencies change.
 Biome replaces ESLint because the current `typescript-eslint` peer requirement
 (`>=4.8.4 <6.1.0`) excludes the selected TypeScript 7. Prettier and Ruff are configured.
-TanStack Query, Vitest, and React Testing Library remain planned and are not installed.
+TanStack Query manages live frontend server state. Vitest and React Testing Library
+are configured for focused, mocked frontend tests; run `npm --prefix frontend run test`.
 Shared `.vscode/settings.json` and `.vscode/extensions.json` configure formatting,
 local tools, pytest discovery, and the official TypeScript 7 editor extension. Keep
 these settings scoped to the repository; do not change global/work editor preferences.
