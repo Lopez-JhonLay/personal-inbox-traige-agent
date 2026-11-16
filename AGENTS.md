@@ -11,6 +11,7 @@ Read `README.md`,
   `repositories/`, `models/`, and `schemas/` layers. Keep business logic outside routes.
 - `backend/tests/`: pytest tests. `backend/migrations/`: Alembic configuration and revisions.
 - `docs/`: requirements, architecture, and roadmap.
+- `.vscode/`: shared workspace settings and extension recommendations.
 
 ## Build, Test, and Development Commands
 

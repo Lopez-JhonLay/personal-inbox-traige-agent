@@ -97,6 +97,29 @@ Flask uses `--debug`; the removed `FLASK_ENV` setting is intentionally omitted.
 
 ## Checks
 
+### VS Code
+
+Open the repository root in VS Code. `.vscode/extensions.json` recommends Python,
+Pylance, Ruff, Biome, Prettier, Tailwind CSS IntelliSense, and Microsoft's TypeScript 7
+extension (`TypeScriptTeam.native-preview`, its retained Marketplace identifier).
+The shared workspace settings enable format-on-save with Prettier for frontend files
+and Ruff for Python, use the backend virtual environment, and discover `backend/tests`
+with pytest. Biome supplies frontend lint diagnostics; the TypeScript language server
+uses the project's TypeScript 7 package. Local dependencies must already be installed.
+
+Reload the VS Code window after installing extensions if prompted. If this workspace
+already had another Python interpreter selected, run **Python: Select Interpreter**
+and select `backend/.venv/Scripts/python.exe`; the default interpreter setting does
+not override a previously saved selection. The explicit Ruff and Biome binary paths
+target Windows x64; adjust them locally for other platforms. Other projects' workspace
+settings and global editor preferences are unchanged.
+
+Configuration follows the official [Biome extension reference](https://biomejs.dev/reference/vscode/),
+[Ruff editor settings](https://docs.astral.sh/ruff/editors/settings/), and
+[Python settings reference](https://code.visualstudio.com/docs/python/settings-reference).
+
+### Command-line checks
+
 ```powershell
 npm --prefix frontend run lint
 npm --prefix frontend run format:check

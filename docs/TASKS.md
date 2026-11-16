@@ -2,8 +2,8 @@
 
 ## Development Phases & Task Tracker
 
-**Version:** 1.1  
-**Status:** In Progress — Initial Scaffold and Git Setup Verified  
+**Version:** 1.2  
+**Status:** In Progress — Phase 0 Complete; Backend Foundation In Progress  
 **Project:** Personal Inbox Triage Agent  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -44,6 +44,14 @@ identity is `Lopez-JhonLay <jhonlaylopez000@gmail.com>`; SSH selects
 `~/.ssh/id_ed25519_personal` with `IdentitiesOnly=yes`. Work/global settings are unchanged.
 The user authorized the initial commit and push of the scaffold and documentation.
 
+Phase 0 editor setup is complete: recommended extensions are installed, and shared
+`.vscode/settings.json` and `.vscode/extensions.json` configure formatting, linting,
+the Python environment, pytest discovery, and the TypeScript 7 language server.
+Configured tool paths, test collection, frontend build/lint/format, Python lint/format,
+and all five backend tests were verified. Reload VS Code if extension activation is
+pending; any previously selected Python interpreter must be changed using
+**Python: Select Interpreter** as described in `README.md`.
+
 Only individually completed tasks are checked below. Client factories and environment
 placeholders do not count as completed auth flows, live integrations, or persistence.
 Phase completion requires all remaining work, including error handling, UI, or security
@@ -52,7 +60,7 @@ that those features or the full MVP are complete.
 
 ### Overall Progress
 
-- [ ] Phase 0 — Development Environment & Project Setup
+- [x] Phase 0 — Development Environment & Project Setup
 - [ ] Phase 1 — Flask Backend Foundation
 - [ ] Phase 2 — AI Integration & Email Analysis
 - [ ] Phase 3 — Database Design & Persistence
@@ -68,7 +76,7 @@ that those features or the full MVP are complete.
 
 # Phase 0 — Development Environment & Project Setup
 
-**Status:** In Progress — Scaffold and Git Setup Complete; Editor Setup Unverified
+**Status:** Complete — Development Tools, Workspace Configuration, and Git Setup Verified
 
 ### Objective
 
@@ -92,13 +100,17 @@ Prepare the local development environment, initialize the project, and configure
 - [x] Install or verify Python 3.
 - [x] Install or verify uv for dependency installation (pip is optional and absent from the uv virtual environment).
 - [x] Install or verify Visual Studio Code.
-- [ ] Configure VS Code for React, TypeScript, and Python development.
-- [ ] Install recommended VS Code extensions:
-  - [ ] Python
-  - [ ] Pylance
-  - [ ] Biome
-  - [ ] Prettier
-  - [ ] Ruff
+- [x] Configure VS Code for React, TypeScript, and Python development.
+- [x] Install or verify recommended VS Code extensions:
+  - [x] Python
+  - [x] Pylance
+  - [x] Biome
+  - [x] Prettier
+  - [x] Ruff
+  - [x] Tailwind CSS IntelliSense
+  - [x] TypeScript 7 (`TypeScriptTeam.native-preview`, the retained Marketplace identifier)
+- [x] Configure format-on-save, project-local tools, backend imports, and pytest discovery.
+- [x] Track shared workspace settings and extension recommendations while ignoring other local editor files.
 
 #### 0.2 Project Initialization
 
@@ -127,7 +139,7 @@ Prepare the local development environment, initialize the project, and configure
 
 ### Phase Completion Checklist
 
-- [ ] All required development tools are working.
+- [x] All required development tools are installed; configured paths and command-line checks pass.
 - [x] Project folder structure is initialized.
 - [x] Documentation exists in the project.
 - [x] GitHub repository is connected.
@@ -1078,6 +1090,8 @@ Use this section to record development milestones, decisions, and challenges.
 - Configured Alembic without revisions or domain tables; kept the React root blank.
 - Initialized Git on `main`, configured personal identity and SSH isolation, and verified the supplied empty remote.
 - Passed frontend lint/format/build, backend lint/format and five tests, and direct/proxied health checks.
+- Completed Phase 0 editor setup: installed Biome 3.8.1, Ruff 2026.96.0, and Microsoft's TypeScript 7 extension 1.0.2; verified existing Python, Pylance, Prettier, and Tailwind extensions.
+- Added shared VS Code settings/recommendations, validated their tool paths, verified pytest discovery, and reran frontend/backend checks successfully.
 
 **Solutions or Decisions:**
 
@@ -1088,7 +1102,7 @@ Use this section to record development milestones, decisions, and challenges.
 **Next Tasks:**
 
 - Complete basic Flask API error handling when feature work is authorized.
-- Verify editor setup as needed.
+- Reload VS Code if prompted; use **Python: Select Interpreter** if a prior workspace selection overrides the configured default.
 - Proceed with later-phase feature work only within the requested scope.
 
 ## Progress Entry Template
@@ -1121,13 +1135,13 @@ Use this section to record development milestones, decisions, and challenges.
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 1 — Flask Backend Foundation (remaining error handling); Phase 0 editor checks remain pending  
-**Current Status:** Initial Scaffold Verified; Application Features Not Implemented
+**Current Phase:** Phase 1 — Flask Backend Foundation (remaining error handling)  
+**Current Status:** Phase 0 Complete; Initial Scaffold Verified; Application Features Not Implemented
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.1  
+**Document Version:** 1.2  
 **Status:** Active Development Tracker  
 **Last Updated:** November 16, 2026
