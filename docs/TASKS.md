@@ -5,7 +5,7 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.18\
+**Version:** 1.19\
 **Status:** Phases 0-7 Complete; Phase 8 Implementation Ready - Browser Acceptance Pending\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
@@ -1777,7 +1777,7 @@ Stop on capacity errors and do not automatically rerun. Keep JSON reports in ign
 
 # Phase 10 — Deployment & Final Validation
 
-**Status:** Not Started
+**Status:** Frontend and Backend Deployed for Approved Testers; Signed-in Acceptance and Public Launch Pending
 
 ## Objective
 
@@ -1795,49 +1795,49 @@ Deploy the application and validate the complete workflow in its hosted environm
 
 ### 10.1 Deployment Preparation
 
-- [ ] Review environment variables.
-- [ ] Configure production secrets.
-- [ ] Verify `.gitignore`.
-- [ ] Confirm no credentials are committed.
-- [ ] Confirm database migrations are ready.
-- [ ] Verify local production builds.
-- [ ] Verify all required tests pass.
+- [x] Review environment variables.
+- [x] Configure production secrets.
+- [x] Verify `.gitignore`.
+- [x] Confirm no credentials are committed.
+- [x] Confirm database migrations are ready.
+- [x] Verify local production builds.
+- [x] Verify all required tests pass.
 
 ### 10.2 Frontend Deployment
 
-- [ ] Connect GitHub repository to Vercel.
-- [ ] Configure frontend project settings.
-- [ ] Configure frontend environment variables.
-- [ ] Deploy React application.
-- [ ] Verify frontend routing.
-- [ ] Verify API connectivity.
+- [x] Connect GitHub repository to Vercel.
+- [x] Configure frontend project settings.
+- [x] Configure frontend environment variables.
+- [x] Deploy React application.
+- [x] Verify frontend routing.
+- [x] Verify API connectivity.
 
 ### 10.3 Backend Deployment
 
-- [ ] Configure Flask deployment for Vercel.
-- [ ] Configure backend environment variables.
-- [ ] Configure Neon database connections.
-- [ ] Deploy Flask backend.
-- [ ] Test health endpoint.
-- [ ] Verify production logging.
+- [x] Configure Flask deployment for Vercel.
+- [x] Configure backend environment variables.
+- [x] Configure Neon database connections.
+- [x] Deploy Flask backend.
+- [x] Test health endpoint.
+- [x] Verify production logging.
 - [ ] Verify serverless request limits are acceptable.
 
 ### 10.4 OAuth Production Configuration
 
-- [ ] Configure production OAuth redirect URI.
-- [ ] Update authorized origins where required.
+- [x] Configure production OAuth redirect URI.
+- [x] Update authorized origins where required.
 - [ ] Verify OAuth consent configuration.
-- [ ] Review Google verification requirements.
+- [x] Review Google verification requirements.
 - [ ] Test authorization using an approved account.
 - [ ] Verify token refresh and disconnection behavior.
 
 ### 10.5 Database Deployment
 
-- [ ] Confirm production Neon database configuration.
-- [ ] Apply reviewed database migrations.
+- [x] Confirm production Neon database configuration.
+- [x] Verify existing head `0003`; no new migration was required or applied.
 - [ ] Verify production database connectivity.
 - [ ] Verify database ownership rules.
-- [ ] Confirm credentials are stored securely.
+- [x] Confirm credentials are stored securely.
 
 ### 10.6 End-to-End Validation
 
@@ -1856,27 +1856,48 @@ Deploy the application and validate the complete workflow in its hosted environm
 
 ### 10.7 Final Documentation
 
-- [ ] Update `README.md` with setup instructions.
-- [ ] Document required environment variables.
-- [ ] Document local development commands.
-- [ ] Document testing commands.
-- [ ] Document deployment configuration.
-- [ ] Update architecture decisions where necessary.
-- [ ] Record known limitations.
+- [x] Update `README.md` with setup instructions.
+- [x] Document required environment variables.
+- [x] Document local development commands.
+- [x] Document testing commands.
+- [x] Document deployment configuration.
+- [x] Update architecture decisions where necessary.
+- [x] Record known limitations.
 
 ## Phase Completion Checklist
 
-- [ ] Frontend is deployed.
-- [ ] Backend is deployed.
+- [x] Frontend is deployed.
+- [x] Backend is deployed.
 - [ ] Database is connected.
 - [ ] Gmail OAuth works in the deployed environment.
 - [ ] AI analysis works.
 - [ ] Dashboard displays results.
 - [ ] Action tracking works.
 - [ ] Core end-to-end workflow passes.
-- [ ] Documentation is up to date.
+- [x] Documentation is up to date.
 
 **Deliverable:** Deployed Mailkind MVP.
+
+### Phase 10 verification record - November 17, 2026
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for project IDs, stable URLs, environment setup,
+Google Console changes, deployed source, HTTP checks, and rollback instructions.
+
+- Vercel MCP configured two Git-linked projects in the personal team. Frontend
+  and backend are READY at the stable addresses recorded in the deployment guide.
+- Source commit: `862f3fcd6220678cb38371f8b5cfea9bcec55968`.
+- Direct/proxied health, SPA deep links, assets, anonymous authorization, JSON API
+  errors, private no-store responses, disabled dev analysis, OAuth redirect/PKCE,
+  secure cookie flags, and invalid-state rejection pass hosted HTTP checks.
+- The user confirmed saving the Google Console callback and Testing/test-user setup.
+- Local regression checks pass: 248 backend tests, 104 frontend tests, build/lint/format.
+  The 24 rollback-only integration tests passed in Phase 9; no schema change required
+  another run. Neon migration version `0003` was verified read-only for deployment.
+- Hosted signed-in persistence, sync/AI/task/reply flow, refresh/disconnect, timeout
+  behavior, and browser/mobile acceptance remain pending. Browser automation is unavailable.
+- This is an approved-tester deployment on free Vercel addresses, not a public launch.
+  Domain ownership, provider privacy, Google verification/assessment, and public
+  disclosures remain outstanding as recorded in SECURITY_REVIEW.md.
 
 ---
 
@@ -2041,6 +2062,6 @@ rules remain in the shared references; phase-specific verification is recorded b
 
 ---
 
-**Document Version:** 1.18\
+**Document Version:** 1.19\
 **Status:** Active Development Tracker  
 **Last Updated:** November 17, 2026

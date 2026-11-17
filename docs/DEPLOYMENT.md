@@ -101,13 +101,51 @@ Browser acceptance with approved users and fictional Gmail messages:
 5. Inspect runtime logs without sharing tokens, cookies, email content, or raw
    OAuth query strings. Record only synthetic findings.
 
+## Verification record - November 17, 2026
+
+Deployment source: `862f3fcd6220678cb38371f8b5cfea9bcec55968`.
+
+| Project  | Deployment                         | Result                                                                 |
+| -------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| Backend  | `dpl_Aqc4oMpf9Qd3RSJrGrCJysCtEGfF` | READY; build used Python 3.14 and installed from `uv.lock`             |
+| Frontend | `dpl_8CygyjiSBdjyBZzw6nPKmiM7nV9i` | READY; Git integration deployed the pushed `main` commit automatically |
+
+Vercel MCP created/configured both projects and encrypted Production variables;
+the backend was also deployed explicitly through MCP. A Git push builds both linked
+projects automatically, so first-rollout acceptance waited for backend health before
+checking the frontend proxy. Both deployed commits match the reviewed configuration.
+
+Verified without browser authentication:
+
+- Direct backend and frontend-proxied `/api/health` return 200 JSON.
+- `/`, `/dashboard`, `/actions`, and `/settings` return 200; bundled JavaScript and
+  the logo load successfully.
+- Anonymous email/action reads return 401 JSON with `no-store`. Anonymous auth status
+  returns `configured: true` with `no-store`; unknown API paths stay JSON 404 rather
+  than returning the SPA. `/api/dev/analyze` returns 404.
+- OAuth start forwards cookies through the frontend and returns the correct Google
+  callback, PKCE S256, and read-only Gmail/profile scopes. Session cookies have Secure,
+  HttpOnly, and SameSite=Lax. An invalid callback state is rejected safely.
+- The user confirmed saving the Google Console redirect/test-user configuration.
+- MCP reported no runtime errors for either project in the reviewed 15-minute window.
+  Sampled backend runtime logs did not contain configured credential values.
+- Local checks: 248 offline backend tests and 104 frontend tests passed, along with
+  build, frontend lint/format, Ruff, and deployment configuration consistency checks.
+  Existing Neon migration `0003` was read without changing schema or application data.
+
+Signed-in browser login, hosted database writes, sync/analysis/task/reply acceptance,
+disconnect/refresh, mobile/focus behavior, and public-release requirements remain
+pending until observed. Computer-use reported no available browser/native surface;
+HTTP probes do not substitute for those checks. No real email content or live AI
+evaluation requests were used by the automated deployment probes.
+
 ## Rollback and public launch
 
 Use Vercel's previous successful deployment and project rollback/promotion controls
 to restore code. Keep frontend/backend versions compatible; do not change the stable
 API hostname or encryption key during rollback. Environment-variable changes and
 database changes are not undone by a code rollback. This first rollout has no earlier
-hosted version; if it fails, stop hosted testing and continue locally until fixed.
+application version; if it fails, stop hosted testing and continue locally until fixed.
 
 The [security review](SECURITY_REVIEW.md) lists unresolved public-launch requirements:
 provider logging/training and retention terms, privacy/Limited Use disclosures,

@@ -1346,3 +1346,11 @@ The architecture is considered successful when:
 **Next Step:** Complete outstanding browser acceptance and provider/privacy release checks;
 see the [Phase 9 security review](SECURITY_REVIEW.md) for validation evidence and limitations,
 and the [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for analysis behavior.
+
+Phase 10 hosts the existing frontend and Flask backend as separate Git-linked Vercel
+projects. The frontend proxies `/api` to the backend before its SPA fallback, keeping
+OAuth and session cookies on one browser origin. Python 3.14 and the existing uv lock
+are reused; no database migration or background worker is introduced. Production
+secrets are backend-only, secure cookies are enabled, and development analysis is
+disabled. See [DEPLOYMENT.md](DEPLOYMENT.md) for verified addresses, deployment IDs,
+HTTP acceptance, Google setup, and remaining signed-in/public-launch checks.
