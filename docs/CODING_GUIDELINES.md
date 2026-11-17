@@ -85,8 +85,10 @@ are configured for focused, mocked frontend tests; run `npm --prefix frontend ru
 Shared `.vscode/settings.json` and `.vscode/extensions.json` configure formatting,
 local tools, pytest discovery, and the official TypeScript 7 editor extension. Keep
 these settings scoped to the repository; do not change global/work editor preferences.
-OAuth, Gmail, OpenRouter, and database support currently consists of client factories
-and configuration; live connectivity and application workflows are not implemented.
+OAuth, read-only Gmail sync, OpenRouter analysis, Neon persistence, and the stored-email
+dashboard are implemented. Continue with Google is the sign-in flow; logout retains
+Gmail authorization while access removal in Settings revokes it. See TASKS.md for
+current automated verification and pending browser acceptance.
 
 ---
 

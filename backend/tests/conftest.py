@@ -32,7 +32,7 @@ def db_session(request: pytest.FixtureRequest) -> Iterator[Session]:
             transaction = connection.begin()
             try:
                 # Check the migration without creating or changing any schema.
-                assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0002"
+                assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0003"
                 with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
                     yield session
             finally:

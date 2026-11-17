@@ -1,12 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { emailKeys } from '../query/queryClient'
 import { ApiError } from '../services/api'
 import {
   analyzeStoredEmail,
   listStoredEmails,
   syncInbox,
+  browseEmails,
+  getEmail,
+  getOverview,
 } from '../services/emails'
-import type { ProcessingCounts } from '../types/api'
+import type { EmailFilters, ProcessingCounts } from '../types/api'
 import { requireSession, useAuthStatus } from './useAuth'
 
 export function useProcessingCounts(userId: string) {
@@ -43,7 +51,7 @@ export function useEmailMutations(userId: string) {
     return auth.csrf_token
   }
   function invalidate() {
-    void client.invalidateQueries({ queryKey: emailKeys.all(userId) })
+    return client.invalidateQueries({ queryKey: emailKeys.all(userId) })
   }
   const sync = useMutation({
     mutationKey: ['emails', userId, 'sync'],
@@ -55,5 +63,43 @@ export function useEmailMutations(userId: string) {
     mutationFn: (id: string) => analyzeStoredEmail(id, token()),
     onSettled: invalidate,
   })
-  return { sync, analyze }
+  const reanalyze = useMutation({
+    mutationKey: ['emails', userId, 'reanalyze'],
+    mutationFn: (id: string) => analyzeStoredEmail(id, token(), true),
+    onSettled: invalidate,
+  })
+  return { sync, analyze, reanalyze }
+}
+
+export function useEmailAnalyzing(userId: string, id: string) {
+  return (
+    useIsMutating({
+      mutationKey: ['emails', userId],
+      predicate: (mutation) =>
+        ['analyze', 'reanalyze'].includes(
+          String(mutation.options.mutationKey?.[2]),
+        ) && mutation.state.variables === id,
+    }) > 0
+  )
+}
+
+export function useInboxOverview(userId: string) {
+  return useQuery({
+    queryKey: emailKeys.overview(userId),
+    queryFn: ({ signal }) => getOverview(signal),
+  })
+}
+
+export function useEmailPage(userId: string, filters: EmailFilters) {
+  return useQuery({
+    queryKey: emailKeys.browse(userId, filters),
+    queryFn: ({ signal }) => browseEmails(filters, signal),
+  })
+}
+
+export function useEmailDetail(userId: string, id: string) {
+  return useQuery({
+    queryKey: emailKeys.detail(userId, id),
+    queryFn: ({ signal }) => getEmail(id, signal),
+  })
 }

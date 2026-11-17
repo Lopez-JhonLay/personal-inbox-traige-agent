@@ -78,6 +78,37 @@
   border: var(--border-control) solid var(--color-line-strong);
 }
 
+@utility theme-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) var(--color-surface-muted);
+
+  &::-webkit-scrollbar {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--color-surface-muted);
+    border-radius: var(--radius-pill);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 2px solid var(--color-surface-muted);
+    border-radius: var(--radius-pill);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink);
+  }
+
+  @media (forced-colors: active) {
+    scrollbar-color: auto;
+    scrollbar-width: auto;
+  }
+}
+
 @layer components {
   .dialog-surface::backdrop {
     background-color: color-mix(in srgb, var(--color-ink) 45%, transparent);

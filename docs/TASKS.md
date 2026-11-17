@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.12\
-**Status:** In Progress — Phases 0 through 5 Complete; Phase 6 Automated Checks Passed\
+**Version:** 1.13\
+**Status:** In Progress - Phase 7 Implementation Ready; Phase 6/7 Browser Review Pending\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -455,7 +455,8 @@ timeouts, provider 5xx errors, and invalid output are retried. Rate limits and r
 return immediately. A malformed result is requested again without returning its content
 to the model. Health checks never contact OpenRouter.
 
-Prompt version `email-analysis-v2` treats all email fields as untrusted data. No tools
+Current prompt `email-analysis-v5` retains v2's untrusted-email handling and adds complete
+professional reply formatting. The earlier live acceptance results below evaluated v2. No tools
 are supplied. Application logs contain model/version/token metadata and safe error
 codes, never bodies, drafts, API keys, or raw provider errors.
 
@@ -465,6 +466,69 @@ Provider training and retention policies vary. Separate free-model account priva
 settings can restrict training-enabled providers and may reduce availability. Free
 routing does not guarantee zero retention; provider-specific review remains necessary
 before real email processing. This phase uses only synthetic fixtures.
+
+### Professional reply refinement (v3)
+
+Drafts now request a greeting, 2-4 useful contextual body sentences, and a closing such
+as Best regards, separated by blank lines. Greeting names must be explicit in the email;
+unknown names use Hello. Do not invent the authenticated user's signature, placeholders,
+completed work, availability, acceptance or promises. No-reply drafts remain null, and
+insufficient context can also produce a null draft. Missing greeting/body/closing fails
+output validation and follows the existing maximum-two-attempt retry policy.
+
+Offline tests cover work/scheduling/generic greetings, paragraph preservation, invalid
+body-only replies, forbidden signature placeholders, retry recovery and bounded failure.
+Synthetic work/meeting evaluation cases now require a non-null draft and manual review
+of its tone/context/format. The v3 prompt has not been live-evaluated yet; historical v2
+acceptance remains historical. Use Reanalyze to regenerate an existing saved reply.
+
+### Analysis feedback follow-up
+
+The latest saved live failure was `AI_INVALID_OUTPUT`; the stored error does not identify
+which field failed. Complete replies now accept ordinary line breaks and normalize
+paragraph spacing. Draft-only validation failures add a trusted formatting reminder on
+the second attempt and log only the fixed `draft_reply_format` reason, never email text.
+Incomplete replies still fail safely and preserve the previous completed result.
+
+The reader shows a visible spinner and Analyzing status for the active email, including
+batch processing and reopening the reader. Mutation state is account/email scoped and
+remains pending until refreshed results arrive. Prior failure notices are hidden while
+working. Confirmation dialogs use plain language, name the action, and explain AI text
+sharing without provider/configuration jargon. Live retry and visual review remain pending.
+
+### Structured reply sections (v4)
+
+Supersedes the v3 reply-format failure/retry behavior above. The provider returns
+`draft_reply` as an object containing required `greeting`, `body`, and `closing` fields,
+or null. Mailkind validates and joins these into the existing plain-text API/database
+field. No migration or rewrite of historical analyses is required. If only the optional
+reply is invalid or missing, core analysis is revalidated and saved with a null draft;
+other invalid fields still fail/retry. The reader explains that a suggested reply is
+unavailable and the summary is saved. No automatic retry loop is added.
+
+Verification: 181 offline backend tests and 79 frontend tests passed. One explicit live
+synthetic work-request evaluation on `baidu/ernie-5.5-flash-preview:free` passed in one
+request with a complete greeting, contextual three-sentence body and closing. Manual
+review found no invented signature, completed work or explicit commitment. This is one
+case, not a full v4 quality evaluation. No saved Gmail content was sent during this check.
+
+### Automatic positive reply intent (v5)
+
+The user requested automatic positive intentions rather than an intent selector. V5 adds
+a concrete next step inside the existing reply body for routine review/feedback requests.
+Requested dates are targets, missing materials make the action conditional, and scheduling
+expresses willingness to coordinate without inventing availability. Payments, contracts and
+approvals express review/clarification rather than automatic authorization. No claims of
+completed work or sending are permitted. Summary/extraction rules, reply-needed decisions,
+structured sections, optional-reply fallback, API shape and database remain unchanged.
+No selector or additional request parameter was added. Historical stored drafts stay intact;
+use Reanalyze to request a fresh draft. Offline backend checks pass (181 tests; 18 optional
+Neon tests skipped). Two explicit live synthetic checks passed in two requests on the
+configured free ERNIE model: the work reply stated an intention to review and share
+feedback with the deadline as a target; the meeting reply stated an intention to check
+availability without inventing times. Both preserved the greeting/body/closing format.
+This is a focused smoke check rather than a full quality evaluation. No saved Gmail
+content was sent during these checks.
 
 ### Verification
 
@@ -756,8 +820,9 @@ connecting does not synchronize or submit real email to OpenRouter.
 5. Open **Audience**, keep publishing status **Testing**, and add the Gmail address you
    will connect under **Test users**. Save it.
 6. Open **Data Access > Add or remove scopes**, select
-   `https://www.googleapis.com/auth/gmail.readonly`, then update/save. No Gmail write
-   scopes are needed.
+   `https://www.googleapis.com/auth/gmail.readonly` and
+   `https://www.googleapis.com/auth/userinfo.profile`, then update/save. The profile
+   scope supplies the optional account name/photo. No Gmail write scopes are needed.
 7. Open **Clients > Create client**. Choose **Web application**, name it **Mailkind local**,
    and add this **Authorized redirect URI** exactly:
 
@@ -798,9 +863,9 @@ uv run --project backend flask --app backend/run.py run --debug --port 5000
 npm --prefix frontend run dev
 ```
 
-1. Open `http://localhost:5173`, scroll to **Your Gmail connection**, and click **Connect Gmail**.
+1. Open `http://localhost:5173` and click **Continue with Google**.
 2. Select your test Gmail account and grant read-only access in Google's consent screen.
-   Review Google's consent information yourself. The app redirects to the homepage.
+   Review Google's consent information yourself. The app redirects to `/dashboard`.
 3. Confirm the connected address appears. Reload and restart Flask; the cookie and stored
    connection should still work within the eight-hour session lifetime.
 4. Open `http://localhost:5173/api/auth/status` in the same browser and copy `data.user_id`.
@@ -814,12 +879,12 @@ npm --prefix frontend run dev
    This refreshes credentials and reads at most one message. It prints only success,
    message count, and body character count. No message content is stored or sent to AI.
    An empty inbox successfully reports zero messages.
-6. Click **Disconnect**, review the confirmation, and disconnect. Confirm that the UI
+6. In Settings, choose **Remove Gmail access**, review the confirmation, and confirm. Check that the UI
    returns to its disconnected state and `encrypted_refresh_token` is NULL. Existing
    saved content remains. If Google revocation fails, remove Mailkind in your
    [Google Account connections](https://myaccount.google.com/connections).
 7. Reconnect once more to verify reauthorization. Connecting a different account requires
-   first disconnecting the current account, preserving each user's separate ownership.
+   first logging out, preserving each user's separate ownership.
 
 Troubleshooting: `redirect_uri_mismatch` means the registered URI differs from the `.env`
 value. Access denied usually means the chosen account is not listed as a test user or
@@ -925,9 +990,9 @@ Connect Gmail retrieval, email storage, AI analysis, and database persistence in
 
 ## Phase 5 Verification Guide
 
-Phase 5 keeps the homepage and fictional sample inbox. The Gmail panel now includes
-Sync Inbox, Continue analysis, Retry failed, stored processing counts, and a data-sharing
-confirmation. There is no dashboard or automatic synchronization after connection.
+Phase 5 originally added processing controls to the homepage. Phase 7 moves Sync Inbox,
+Continue analysis, Retry failed, counts, and confirmations to `/dashboard`. The homepage
+sample remains fictional. There is no automatic synchronization after sign-in.
 
 ### Prepare fictional Gmail messages
 
@@ -936,7 +1001,7 @@ confirmation. There is no dashboard or automatic synchronization after connectio
    a request to review an imaginary document, and a fictional newsletter with no action.
    Avoid real confidential content. Leave both messages in Inbox and apply `mailkind-test`.
 3. Local `backend/.env` is configured with `GMAIL_SYNC_QUERY=label:mailkind-test`. The
-   homepage displays the active inbox filter. Only matching inbox messages are imported.
+   dashboard displays the active inbox filter. Only matching inbox messages are imported.
 4. Review OpenRouter account/provider privacy settings before proceeding. Provider data
    rules vary; see [OpenRouter data controls](https://openrouter.ai/docs/guides/get-started/sovereign-ai).
    The confirmation explains that sender, subject, readable message text, and timestamps
@@ -944,7 +1009,7 @@ confirmation. There is no dashboard or automatic synchronization after connectio
 
 ### Review the pipeline
 
-1. Open `http://localhost:5173/#gmail-connection` and connect Gmail if needed.
+1. Open `http://localhost:5173`, continue with Google if needed, and open `/dashboard`.
 2. Check that the inbox filter is `label:mailkind-test`. Click Sync Inbox and review the
    confirmation. Continue only when you are ready to save and analyze those test messages.
 3. Sync imports up to 20 matching messages. The browser then analyzes pending messages
@@ -1172,7 +1237,7 @@ they do not replace real-browser focus-trap and Escape verification.
 # Phase 7 — Dashboard & Email Management
 
 
-**Status:** In Progress — Welcome Homepage and Demo Only; Live Dashboard Pending
+**Status:** Implementation Ready - Automated Checks Passed; Browser Acceptance Pending
 
 ## Objective
 
@@ -1190,8 +1255,8 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 ### 7.1 Welcome & Gmail Connection
 
-- [x] Create welcome homepage with a fictional sample inbox and separate live connection controls.
-- [x] Add Connect Gmail button.
+- [x] Create welcome landing page with one Google sign-in entry point in the navbar; retain the right-side fictional inbox preview.
+- [x] Add Continue with Google with the Google logo and automatic dashboard redirects for active sessions.
 - [x] Integrate OAuth redirect flow.
 - [x] Display Gmail connection status.
 - [x] Handle failed connections.
@@ -1199,55 +1264,55 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 ### 7.2 Dashboard Overview
 
-- [ ] Create dashboard page.
-- [ ] Display connected Gmail account.
-- [ ] Display last synchronization time.
-- [ ] Display total analyzed emails.
-- [ ] Display high-priority count.
-- [ ] Display reply-needed count.
-- [ ] Display pending-action count.
-- [ ] Add Sync Inbox button.
+- [x] Create dashboard page.
+- [x] Display connected Gmail account.
+- [x] Display last synchronization time.
+- [x] Display total analyzed emails.
+- [x] Display high-priority count.
+- [x] Display reply-needed count.
+- [ ] Display pending-action count (UI deferred to Phase 8; overview API support remains).
+- [x] Add Sync Inbox button.
 
 ### 7.3 Email List
 
-- [ ] Create EmailCard component.
-- [ ] Create EmailList component.
-- [ ] Display sender and subject.
-- [ ] Display AI-generated summary.
-- [ ] Display category and priority.
-- [ ] Display received timestamp.
-- [ ] Display analysis status.
-- [ ] Implement pagination.
-- [ ] Add empty and error states.
+- [x] Create EmailCard component.
+- [x] Create EmailList component.
+- [x] Display sender and subject.
+- [x] Display AI-generated summary.
+- [x] Display category and priority.
+- [x] Display received timestamp.
+- [x] Display analysis status.
+- [x] Implement pagination.
+- [x] Add empty and error states.
 
 ### 7.4 Email Filtering
 
-- [ ] Filter emails by priority.
-- [ ] Filter emails by category.
-- [ ] Filter emails requiring replies.
-- [ ] Filter emails with pending actions.
-- [ ] Add sorting options.
-- [ ] Keep filters synchronized with API queries.
+- [x] Filter emails by priority.
+- [x] Filter emails by category.
+- [x] Filter emails requiring replies.
+- [ ] Filter emails with pending actions (UI deferred to Phase 8; API support remains).
+- [x] Add sorting options.
+- [x] Keep filters synchronized with API queries.
 
 ### 7.5 Email Detail View
 
-- [ ] Display original email content safely.
-- [ ] Display AI summary.
-- [ ] Display priority and category.
-- [ ] Display detected deadline.
-- [ ] Display requested action.
-- [ ] Display suggested next action.
-- [ ] Display reply-needed status.
-- [ ] Display optional draft reply.
-- [ ] Add manual reanalysis action.
+- [x] Display original email content safely.
+- [x] Display AI summary.
+- [x] Display priority and category.
+- [x] Display detected deadline.
+- [x] Display requested action.
+- [x] Display suggested next action.
+- [x] Display reply-needed status.
+- [x] Display optional draft reply.
+- [x] Add manual reanalysis action.
 
 ### 7.6 Settings
 
-- [ ] Display connected Gmail address.
-- [ ] Display timezone settings.
-- [ ] Add Disconnect Gmail action.
-- [ ] Display confirmation before disconnection.
-- [ ] Handle expired sessions.
+- [x] Display connected Gmail address.
+- [x] Display timezone settings.
+- [x] Add Remove Gmail access in Settings and separate Log out in navigation.
+- [x] Display confirmation before removing Gmail access.
+- [x] Handle expired sessions.
 
 ## Phase Completion Checklist
 
@@ -1259,6 +1324,86 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [ ] Synchronization can be triggered from the dashboard.
 
 **Deliverable:** Functional inbox dashboard.
+
+## Phase 7 Verification Guide
+
+Implementation is ready; real-browser acceptance remains pending.
+
+- `/dashboard` reads saved emails and overview totals. Filters, sorting, 20-email
+  pagination, and selected details use URL parameters. Browsing never triggers AI.
+  Counts/classification use the latest successful analysis; current attempt status
+  is shown separately. Original emails render as text. Settings displays timezone.
+- Migration `0003` is applied on Neon with no schema drift. Nullable `last_synced_at`
+  updates only after a fully successful sync, including empty/duplicate-only runs.
+  Partial/failed syncs retain the old timestamp. Analysis completion is independent.
+- All 156 tests passed in the Neon run (138 offline + 18 rollback-only database tests
+  with Gmail/AI mocked). Subsequent sign-in/logout changes are covered by the updated
+  offline suite. Frontend tests cover dashboard queries/state, URL filters, safe text,
+  reanalysis confirmation, cache isolation, sign-in/logout, and revocation warnings.
+- Final checks: 76 frontend tests and 168 offline backend tests passed, along with
+  frontend lint/format/build, Ruff lint/format, and the whitespace check.
+- Computer-use stopped because it could not confidently determine Chrome's URL.
+  No live sync, inference, sign-out, revocation, or Google consent was performed.
+  Desktop/mobile visual checks and real-browser dialog focus/Escape remain pending.
+
+Dashboard UX refinement:
+
+- Review-first desktop list/reader layout; full-width mobile reading with restored list
+  position/focus. Compact global totals and account identity replace repeated headings.
+- Highest-priority default sorting, All/High priority/Needs reply quick views, collapsible
+  advanced filters, visible chips, and three distinct empty states use existing APIs.
+- A single mounted processing controller retains the sequential queue during browsing.
+  Sync has its existing confirmation and active inbox scope; conditional Continue/Retry
+  controls support recovery; failed emails are viewed through the single toolbar status filter. Structured progress reports real batch work.
+- No database migration, backend change, provider call, or persistent reviewed state was
+  added for this UX refinement. Browser layout/focus acceptance remains pending.
+- Follow-up simplification removes the redundant global-count row, quick-view buttons,
+  collapsible filter section, and chips. One responsive toolbar now contains each filter
+  once, plus sorting and a single Clear filters control. Inbox pagination is fixed below
+  the scrolling list; panel loading is a centered circle and inner scrollbars use theme tokens.
+- Navbar refinement groups branding, page links, and account identity. Mobile uses
+  one hamburger disclosure for links and account/logout controls. Google profile name
+  and photo are session-only presentation fields obtained with basic profile permission;
+  existing sessions and unavailable photos fall back to initials. Log out and sign in
+  again to populate the photo; no schema migration or live Google consent was performed.
+- Updated checks: 76 frontend tests and 168 offline backend tests passed, including
+  navbar keyboard/closing behavior, image fallback, profile response validation, optional
+  profile failures, scope changes, and session cleanup. Browser acceptance remains pending.
+- Final UX checks: all 76 mocked frontend tests and lint/format/build passed. The
+  connected-browser verification attempt reported that the browser access host is
+  unavailable; desktop/mobile visual acceptance remains a manual check.
+
+Manual acceptance:
+
+1. Open `http://localhost:5173`. Anonymous visitors see one Continue with Google
+   button in the navbar, with the Google logo and read-only Gmail disclosure. Active
+   sessions redirect automatically to `/dashboard`. The fictional inbox preview remains, without demo links or duplicate sign-in buttons. No public processing/removal controls are displayed.
+2. Continue with Google using your test account. Choose the Gmail inbox to review
+   and approve access when requested. Success redirects directly to `/dashboard`.
+   If Google omits a refresh token and none is saved, retry with the consent link.
+3. Confirm your two synthetic emails. Default sorting is Highest priority first.
+   Use the single toolbar to combine Priority, Category, Analysis status and Needs reply.
+   Each filter appears once. Clear filters resets all filters and retains sorting. Pending-action
+   controls are intentionally hidden until Phase 8. Refresh and browser Back preserve
+   URL filters/page/selection. Pagination uses mocked frontend fixtures.
+4. Open an email and expand Original email / Suggested reply. Return with Back to inbox.
+   Open Reanalyze and cancel; open Sync inbox and cancel. Check Tab/Shift+Tab focus
+   trapping, Escape, and focus return. Actually confirming sends the displayed
+   saved/test email text to the configured provider. The inbox filter remains
+   `label:mailkind-test`; no automatic processing starts on sign-in.
+5. Check Settings shows your Gmail and `Asia/Manila`. Log out returns home, clearing
+   private browser data while retaining Gmail authorization and saved emails. Sign
+   in again to restore the same inbox. To switch accounts, log out and choose another
+   Google account; each account must see only its own data. Mailkind logout does not
+   sign you out of Google itself.
+6. Only if desired, Remove Gmail access in Settings and confirm. This also logs out,
+   retains saved emails, and shows a warning if Google revocation fails. Next sign-in
+   may require a consent retry because the stored credentials were removed.
+7. Repeat browsing at desktop and 320px widths; check wrapping and no horizontal
+   overflow. Complete the pending Phase 6 browser checks at the same time.
+
+Action creation/tracking, editable/copyable reply drafts, timezone editing,
+automatic synchronization, and deployment remain later work.
 
 ---
 
@@ -1654,6 +1799,13 @@ rules remain in the shared references; phase-specific verification is recorded b
   TanStack Query hooks and cache isolation, reusable live controls, and 37 mocked frontend
   tests. Existing backend tests and frontend checks passed; browser policy prevented the
   final visual review, which remains pending. No backend schema or dashboard was added.
+- **Phase 7 implementation (November 17):** Added dashboard/settings routes, stored-email
+  list/filter/pagination/details, overview totals, confirmed reanalysis, and sync timestamps.
+  Migration `0003` is applied on Neon without drift. Google sign-in opens the dashboard;
+  active sessions bypass the landing page. The public navbar has one Google-logo
+  sign-in button; the right-side demo remains and demo links are removed. Log out retains Gmail
+  access, and Remove Gmail access is confirmed in Settings.
+  Automated checks passed; real-browser acceptance remains pending.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1664,13 +1816,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 6 — React Frontend Foundation (implementation ready; manual review pending)\
-**Current Status:** Phases 0 through 5 Complete; Gmail-to-AI Pipeline Verified with Synthetic Messages; Frontend Foundation and Live Dashboard Work Remain
+**Current Phase:** Phase 7 - Dashboard & Email Management (implementation ready; manual review pending)\
+**Current Status:** Phases 0 through 5 Complete; Phase 6/7 Implementation and Automated Checks Ready; Browser Acceptance Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.12\
+**Document Version:** 1.13\
 **Status:** Active Development Tracker  
 **Last Updated:** November 17, 2026

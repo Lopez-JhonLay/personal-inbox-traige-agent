@@ -1,15 +1,14 @@
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Mail,
-  Menu,
-  Plus,
-  X,
-} from 'lucide-react'
+import { ArrowUp, Menu, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { Navigate } from 'react-router'
+import { BrandIdentity } from '../components/BrandIdentity'
+import {
+  GoogleSignInNotice,
+  GoogleSignInButton,
+} from '../components/GoogleSignIn'
 import { InboxPreview } from '../components/InboxPreview'
-import { GmailConnection } from '../components/GmailConnection'
+import { LoadingIndicator } from '../components/ui/LoadingIndicator'
+import { useAuthStatus } from '../hooks/useAuth'
 
 const navigation = [
   { label: 'How it works', href: '#how-it-works' },
@@ -35,24 +34,25 @@ const steps = [
     number: '03',
     title: 'Choose your next step',
     description:
-      'Review the request, copy a suggested reply, or leave it for later.',
+      'Review the request and suggested reply, then decide what to handle.',
     tone: 'bg-success-soft',
   },
 ]
 const questions = [
   {
-    question: 'What does “reviewed” mean?',
+    question: 'Can Mailkind send or change my emails?',
     answer:
-      'It marks a message as checked. Choose Undo review to change it back.',
+      'No. Gmail access is read-only. Mailkind does not send replies, delete messages, or change labels.',
   },
   {
-    question: 'Can I change the suggested reply?',
+    question: 'When are my emails analyzed?',
     answer:
-      'Copy the draft, paste it into your email editor, and edit it before sending.',
+      'You choose when to sync and analyze emails from the dashboard. Opening your inbox never starts AI processing.',
   },
   {
-    question: 'Will my changes be saved?',
-    answer: 'Your review choices last until you reload or close the page.',
+    question: 'Will my summaries be saved?',
+    answer:
+      'Imported emails and analysis results stay in Mailkind when you log out. Sign in with the same Google account to return to your saved inbox.',
   },
 ]
 const details = [
@@ -66,7 +66,7 @@ const details = [
   },
   {
     title: 'Keep the final say',
-    text: 'Marking a message as reviewed never sends a reply.',
+    text: 'You choose when to sync and analyze. Suggested replies are never sent automatically.',
   },
 ]
 
@@ -77,18 +77,21 @@ function Brand() {
       className="inline-flex items-center gap-3 text-ink no-underline"
       aria-label="Mailkind home"
     >
-      <span className="grid size-10 -rotate-6 place-items-center rounded-control border-2 border-ink bg-highlight shadow-press">
-        <Mail aria-hidden="true" className="size-6" />
-      </span>
-      <span className="font-display text-xl font-bold tracking-[-0.055em]">
-        Mailkind
-      </span>
+      <BrandIdentity />
     </a>
   )
 }
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const auth = useAuthStatus()
+  if (auth.data?.authenticated) return <Navigate to="/dashboard" replace />
+  if (auth.isPending)
+    return (
+      <main className="page-container py-12">
+        <LoadingIndicator label="Checking your session…" />
+      </main>
+    )
   return (
     <>
       <a
@@ -98,12 +101,12 @@ export default function HomePage() {
         Skip to content
       </a>
       <header id="top" className="relative z-20 border-b border-line">
-        <div className="page-container flex min-h-24 flex-wrap items-center justify-between gap-4 py-4">
+        <div className="page-container grid min-h-24 grid-cols-[1fr_auto] items-center gap-3 py-4 sm:grid-cols-[auto_1fr_auto] lg:flex lg:justify-between lg:gap-4">
           <Brand />
           <nav
             aria-label="Main navigation"
             id="main-navigation"
-            className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-start gap-1 border-t border-line pt-3 lg:order-none lg:flex lg:w-auto lg:flex-row lg:gap-5 lg:border-0 lg:pt-0`}
+            className={`${menuOpen ? 'flex' : 'hidden'} order-3 col-span-full w-full flex-col items-start gap-1 border-t border-line pt-3 lg:order-none lg:flex lg:w-auto lg:flex-row lg:gap-5 lg:border-0 lg:pt-0`}
           >
             {navigation.map((link) => (
               <a
@@ -116,16 +119,12 @@ export default function HomePage() {
               </a>
             ))}
           </nav>
-          <a
-            href="#sample-inbox"
-            className="button hidden text-sm sm:inline-flex"
-          >
-            Try the demo
-            <ArrowDown aria-hidden="true" className="size-4" />
-          </a>
+          <div className="order-2 col-span-full sm:order-1 sm:col-span-1 sm:justify-self-end lg:order-none">
+            <GoogleSignInButton />
+          </div>
           <button
             type="button"
-            className="button button-secondary button-icon lg:hidden"
+            className="button button-secondary button-icon order-1 sm:order-2 lg:hidden"
             aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
             aria-expanded={menuOpen}
             aria-controls="main-navigation"
@@ -138,6 +137,7 @@ export default function HomePage() {
           </button>
         </div>
       </header>
+      <GoogleSignInNotice />
       <main id="main" tabIndex={-1}>
         <section
           className="page-container grid items-center gap-10 pb-16 pt-12 md:pb-20 md:pt-16 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16 lg:pb-24 lg:pt-20"
@@ -171,22 +171,9 @@ export default function HomePage() {
             <p className="mt-7 max-w-[25rem] text-base leading-[1.8] text-muted">
               Read a summary, spot a deadline, and decide what to handle first.
             </p>
-            <div className="mt-8 cluster gap-4">
-              <a href="#sample-inbox" className="button text-sm">
-                Try the demo
-                <ArrowDown aria-hidden="true" className="size-4" />
-              </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex min-h-11 items-center text-sm font-semibold text-ink underline-offset-4"
-              >
-                How it works
-              </a>
-            </div>
           </div>
           <InboxPreview />
         </section>
-        <GmailConnection />
         <section
           id="how-it-works"
           className="content-container section-space scroll-mt-8"
@@ -227,10 +214,10 @@ export default function HomePage() {
           <figure>
             <div className="overflow-hidden rounded-panel border-2 border-ink bg-surface shadow-panel">
               <img
-                src="/images/quiet-workspace.jpg"
-                width="1400"
-                height="933"
-                alt="Notebook, coffee, and a laptop on a wooden desk"
+                src="/images/mailkind-workspace.png"
+                width="1374"
+                height="1145"
+                alt="Paper-and-ink illustration of a laptop with an envelope, a checklist, and a coffee mug"
                 loading="lazy"
                 className="aspect-[6/5] w-full object-cover"
               />
@@ -296,26 +283,6 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-        <section
-          className="page-container pb-12 pt-4 md:pb-16"
-          aria-labelledby="closing-title"
-        >
-          <div className="rounded-panel border-2 border-ink bg-accent-soft px-6 py-12 text-center shadow-press md:py-16">
-            <h2
-              id="closing-title"
-              className="text-[clamp(2.25rem,4.4vw,3.75rem)] tracking-[-0.055em]"
-            >
-              Start with three emails.
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-sm text-muted">
-              Open a message to see its summary and suggested next step.
-            </p>
-            <a href="#sample-inbox" className="button mt-7 text-sm">
-              Try the demo
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </a>
-          </div>
-        </section>
       </main>
       <footer className="border-t border-line">
         <div className="page-container flex flex-col gap-5 py-8 sm:flex-row sm:items-center sm:justify-between">
@@ -334,14 +301,6 @@ export default function HomePage() {
               <ArrowUp aria-hidden="true" className="size-3.5" />
             </a>
             <p>© 2026</p>
-            <a
-              className="mt-1 inline-block text-muted"
-              href="https://unsplash.com/s/photos/organised-desk"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Photo via Unsplash
-            </a>
           </div>
         </div>
       </footer>

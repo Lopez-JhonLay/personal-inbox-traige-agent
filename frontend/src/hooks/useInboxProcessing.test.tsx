@@ -70,6 +70,7 @@ it('does no inference on mount and processes confirmed work one request at a tim
   vi.mocked(analyzeStoredEmail).mockReturnValueOnce(first.promise)
   const { result } = renderHook(() => useInboxProcessing('user-a'), { wrapper })
   expect(syncInbox).not.toHaveBeenCalled()
+  expect(result.current.progress.phase).toBe('idle')
   expect(analyzeStoredEmail).not.toHaveBeenCalled()
   let run: Promise<void> | undefined
   await act(async () => {
@@ -78,12 +79,24 @@ it('does no inference on mount and processes confirmed work one request at a tim
   })
   await waitFor(() => expect(analyzeStoredEmail).toHaveBeenCalledTimes(1))
   expect(analyzeStoredEmail).toHaveBeenCalledWith('one', 'synthetic-csrf')
+  expect(result.current.progress).toMatchObject({
+    phase: 'analyzing',
+    current: 1,
+    total: 2,
+    completed: 0,
+  })
   await act(async () => {
     first.resolve(testAnalysis)
     await run
   })
   expect(analyzeStoredEmail).toHaveBeenNthCalledWith(2, 'two', 'synthetic-csrf')
-  await waitFor(() => expect(result.current.message).toContain('2 analyzed'))
+  await waitFor(() => expect(result.current.progress.completed).toBe(2))
+  expect(result.current.progress).toMatchObject({
+    phase: 'finished',
+    completed: 2,
+    failed: 0,
+    total: 2,
+  })
 })
 
 it('pauses on rate limits, saves the failed status refresh, and never automatically retries', async () => {
@@ -103,6 +116,14 @@ it('pauses on rate limits, saves the failed status refresh, and never automatica
   expect(analyzeStoredEmail).toHaveBeenCalledTimes(1)
   expect(result.current.error).toContain('15 seconds')
   expect(result.current.error).toContain('Remaining work is saved')
+  expect(result.current.progress).toMatchObject({
+    phase: 'paused',
+    failed: 1,
+    completed: 0,
+    total: 2,
+    errorCode: 'AI_RATE_LIMITED',
+    retryAfter: '15',
+  })
   expect(client.getQueryState(emailKeys.counts('user-a'))?.isInvalidated).toBe(
     true,
   )
@@ -125,7 +146,11 @@ it('continues after a single invalid output and invalidates stored counts', asyn
     await result.current.run('sync')
   })
   expect(analyzeStoredEmail).toHaveBeenCalledTimes(2)
-  expect(result.current.message).toContain('1 analyzed, 1 analysis failures')
+  expect(result.current.progress).toMatchObject({
+    completed: 1,
+    failed: 1,
+    phase: 'finished',
+  })
   expect(client.getQueryState(emailKeys.counts('user-a'))?.isInvalidated).toBe(
     true,
   )

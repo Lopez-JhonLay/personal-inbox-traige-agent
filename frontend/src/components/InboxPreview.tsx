@@ -56,8 +56,7 @@ export function InboxPreview() {
 
   return (
     <div id="sample-inbox" className="scroll-mt-6">
-      <p id="demo-notice" className="mb-3 text-xs leading-relaxed text-muted">
-        <strong className="font-semibold text-ink">Interactive demo.</strong>{' '}
+      <p id="demo-notice" className="sr-only">
         Sample emails, no Gmail connection.
       </p>
       <section

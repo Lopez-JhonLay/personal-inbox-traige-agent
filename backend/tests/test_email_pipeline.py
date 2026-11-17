@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.models import Email, EmailAnalysisRecord
+from app.repositories import action_repository as actions
 from app.repositories import analysis_repository as analyses
 from app.repositories import email_repository as emails
 from app.repositories import gmail_connection_repository as connections
@@ -185,10 +186,116 @@ def test_partial_import_and_budget(pipeline) -> None:
     service.get_message.side_effect = fetch
     result = service.sync_emails(p.settings, p.database, p.user.id)
     assert result["imported"] == 1 and result["failed"] == 1
+    assert p.connection.last_synced_at is None
     service.get_message.side_effect = IntegrationError("SYNC_TIME_BUDGET", "Paused.", 409)
     result = service.sync_emails(p.settings, p.database, p.user.id)
     assert result["existing"] == 1 and result["deferred"] == 1
     assert p.connection.operation_id is None
+    assert p.connection.last_synced_at is None
+
+
+def test_successful_empty_and_duplicate_sync_record_timestamp(pipeline) -> None:
+    p = pipeline
+    assert p.connection.last_synced_at is None
+    service.sync_emails(p.settings, p.database, p.user.id)
+    first = p.connection.last_synced_at
+    assert first is not None
+    service.sync_emails(p.settings, p.database, p.user.id)
+    assert p.connection.last_synced_at >= first
+    service.list_message_ids.return_value = []
+    service.sync_emails(p.settings, p.database, p.user.id)
+    assert p.connection.last_synced_at >= first
+    previous = p.connection.last_synced_at
+    service.list_message_ids.side_effect = IntegrationError("GMAIL_UNAVAILABLE", "Unavailable.")
+    with pytest.raises(IntegrationError):
+        service.sync_emails(p.settings, p.database, p.user.id)
+    assert p.connection.last_synced_at == previous
+
+
+def test_dashboard_overview_combined_filters_and_action_ownership(pipeline) -> None:
+    p = pipeline
+    result = service.sync_emails(p.settings, p.database, p.user.id)
+    from uuid import UUID
+
+    email_id = UUID(result["pending_email_ids"][0])
+    service.analyze_email.return_value["analysis"]["reply_needed"] = True
+    service.process_email(p.settings, p.database, p.user.id, email_id)
+    actions.create_action(p.session, p.user.id, email_id, description="First")
+    actions.create_action(p.session, p.user.id, email_id, description="Second")
+    overview = service.user_overview(p.database, p.user.id)
+    assert overview["email"] == p.user.email
+    assert overview["timezone"] == "Asia/Manila"
+    assert overview["last_synced_at"] is not None
+    assert overview["analyzed_count"] == 1
+    assert overview["high_priority_count"] == 1
+    assert overview["reply_needed_count"] == 1
+    assert overview["pending_action_count"] == 2
+    page = service.list_user_emails(
+        p.database,
+        p.user.id,
+        EmailQuery(
+            priority="High",
+            category="Work",
+            reply_needed=True,
+            has_pending_action=True,
+            sort="priority_desc",
+        ),
+    )
+    assert page["total"] == 1  # Two actions must not duplicate the email.
+    assert page["emails"][0]["id"] == str(email_id)
+    assert (
+        service.list_user_emails(p.database, p.user.id, EmailQuery(has_pending_action=False))[
+            "total"
+        ]
+        == 1
+    )
+    service.analyze_email.side_effect = AnalysisError("AI_INVALID_OUTPUT", "Invalid.", 502)
+    with pytest.raises(AnalysisError):
+        service.process_email(p.settings, p.database, p.user.id, email_id, force=True)
+    assert service.user_overview(p.database, p.user.id)["analyzed_count"] == 1
+    assert (
+        service.list_user_emails(p.database, p.user.id, EmailQuery(reply_needed=True))["total"] == 1
+    )
+    other = users.create_user(p.session, email=f"phase7-{uuid4()}@example.invalid")
+    assert service.user_overview(p.database, other.id)["pending_action_count"] == 0
+    assert service.user_overview(p.database, other.id)["analyzed_count"] == 0
+    assert (
+        service.list_user_emails(p.database, other.id, EmailQuery(has_pending_action=True))["total"]
+        == 0
+    )
+
+
+def test_dashboard_sorting_and_pagination(pipeline) -> None:
+    p = pipeline
+    result = service.sync_emails(p.settings, p.database, p.user.id)
+    from uuid import UUID
+
+    first_id, second_id = map(UUID, result["pending_email_ids"])
+    first = emails.get_email(p.session, p.user.id, first_id)
+    second = emails.get_email(p.session, p.user.id, second_id)
+    first.received_at = second.received_at - timedelta(days=1)
+    p.session.flush()
+    service.process_email(p.settings, p.database, p.user.id, first_id)
+    service.analyze_email.return_value["analysis"]["priority"] = "Low"
+    service.process_email(p.settings, p.database, p.user.id, second_id)
+    for sort, expected in [
+        ("received_desc", second_id),
+        ("received_asc", first_id),
+        ("priority_desc", first_id),
+    ]:
+        page = service.list_user_emails(p.database, p.user.id, EmailQuery(sort=sort, limit=1))
+        next_page = service.list_user_emails(
+            p.database, p.user.id, EmailQuery(sort=sort, limit=1, offset=1)
+        )
+        assert page["total"] == next_page["total"] == 2
+        assert page["emails"][0]["id"] == str(expected)
+        assert page["emails"][0]["id"] != next_page["emails"][0]["id"]
+    first.received_at = second.received_at
+    p.session.flush()
+    tied = service.list_user_emails(p.database, p.user.id, EmailQuery())
+    assert [e["id"] for e in tied["emails"]] == sorted(
+        [str(first_id), str(second_id)], reverse=True
+    )
 
 
 def test_operation_overlap_recovery_and_ownership(pipeline) -> None:

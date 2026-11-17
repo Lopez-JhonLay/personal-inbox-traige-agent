@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app
 from app.config import Settings
-from app.schemas.gmail_schema import ConnectionStatus
+from app.schemas.gmail_schema import ConnectionStatus, GoogleProfile
 from app.services import auth_service as auth
 from app.services.integration_errors import IntegrationError
 from app.utils.safe_logging import OAuthLogFilter
@@ -58,8 +58,9 @@ def test_start_oauth_has_pkce_and_readonly_scope(client) -> None:
     response = client.get("/api/auth/google")
     assert response.status_code == 302
     query = parse_qs(urlparse(response.location).query)
-    assert query["scope"] == [auth.GMAIL_SCOPES[0]]
+    assert set(query["scope"][0].split()) == set(auth.OAUTH_SCOPES)
     assert query["access_type"] == ["offline"]
+    assert query["prompt"] == ["select_account"]
     assert query["code_challenge_method"] == ["S256"]
     assert "code_challenge" in query
     assert response.headers["Cache-Control"] == "no-store"
@@ -108,7 +109,7 @@ def test_callback_rejects_invalid_requests(client, monkeypatch, case: str, expec
 
 def test_callback_success_session_status_and_disconnect(client, monkeypatch) -> None:
     user_id = uuid4()
-    finish = Mock(return_value=user_id)
+    finish = Mock(return_value=auth.AuthorizedAccount(user_id=user_id))
     monkeypatch.setattr(auth, "finish_authorization", finish)
     client.get("/api/auth/google")
     with client.session_transaction() as session:
@@ -116,7 +117,7 @@ def test_callback_success_session_status_and_disconnect(client, monkeypatch) -> 
     response = client.get(
         "/api/auth/google/callback", query_string={"state": state, "code": "secret-code"}
     )
-    assert "gmail=connected" in response.location
+    assert response.location == "http://localhost:5173/dashboard"
     assert "secret-code" not in response.location
     with client.session_transaction() as session:
         assert set(session) == {"_permanent", "user_id", "csrf_token"}
@@ -147,6 +148,55 @@ def test_callback_success_session_status_and_disconnect(client, monkeypatch) -> 
     with client.session_transaction() as session:
         assert not session
     assert client.post("/api/auth/disconnect").status_code == 401
+
+
+def test_reconnection_requests_consent_and_account_selection(client) -> None:
+    response = client.get("/api/auth/google?reconnect=1")
+    assert parse_qs(urlparse(response.location).query)["prompt"] == ["select_account consent"]
+
+
+def test_logout_requires_csrf_and_never_revokes_gmail(client, monkeypatch) -> None:
+    disconnect = Mock()
+    connection_status = Mock()
+    monkeypatch.setattr(auth, "disconnect_gmail", disconnect)
+    monkeypatch.setattr(auth, "connection_status", connection_status)
+    with client.session_transaction() as session:
+        session["user_id"] = str(uuid4())
+        session["csrf_token"] = "synthetic-csrf"
+        session["oauth"] = {"state": "unfinished-authorization"}
+    assert client.post("/api/auth/logout").status_code == 403
+    assert client.post("/api/auth/logout", headers={"X-CSRF-Token": "wrong"}).status_code == 403
+    with client.session_transaction() as session:
+        assert "user_id" in session
+    response = client.post("/api/auth/logout", headers={"X-CSRF-Token": "synthetic-csrf"})
+    assert response.json["data"] == {"logged_out": True}
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "mailkind_session=;" in response.headers["Set-Cookie"]
+    with client.session_transaction() as session:
+        assert not session
+    assert client.post("/api/auth/logout").status_code == 401
+    disconnect.assert_not_called()
+    connection_status.assert_not_called()
+
+
+def test_logout_allows_signing_in_with_another_google_account(client, monkeypatch) -> None:
+    previous_user, next_user = uuid4(), uuid4()
+    finish = Mock(return_value=auth.AuthorizedAccount(user_id=next_user))
+    monkeypatch.setattr(auth, "finish_authorization", finish)
+    with client.session_transaction() as session:
+        session["user_id"] = str(previous_user)
+        session["csrf_token"] = "synthetic-csrf"
+    client.post("/api/auth/logout", headers={"X-CSRF-Token": "synthetic-csrf"})
+    client.get("/api/auth/google")
+    with client.session_transaction() as session:
+        state = session["oauth"]["state"]
+    response = client.get(
+        "/api/auth/google/callback", query_string={"state": state, "code": "code"}
+    )
+    assert response.location.endswith("/dashboard")
+    assert finish.call_args.kwargs["expected_user_id"] is None
+    with client.session_transaction() as session:
+        assert session["user_id"] == str(next_user)
 
 
 def test_unconfigured_app_and_safe_database_error(client, monkeypatch) -> None:
@@ -278,10 +328,137 @@ def authorize(
 
 
 def test_finish_persists_encrypted_token(auth_settings, persistence, monkeypatch) -> None:
-    assert authorize(monkeypatch, auth_settings, persistence) == persistence[2].id
+    assert authorize(monkeypatch, auth_settings, persistence).user_id == persistence[2].id
     saved = auth.connections.save_connection.call_args.kwargs
     assert decrypt_token(auth_settings, saved["encrypted_refresh_token"]) == "synthetic-refresh"
     assert saved["status"] == "connected"
+
+
+def test_authorization_carries_optional_profile_without_using_it_as_identity(
+    auth_settings, persistence, monkeypatch
+) -> None:
+    profile = GoogleProfile(
+        name="Synthetic Person", picture="https://lh3.googleusercontent.com/test"
+    )
+    monkeypatch.setattr(auth, "get_google_profile", Mock(return_value=profile))
+    account = authorize(monkeypatch, auth_settings, persistence, scopes=auth.OAUTH_SCOPES)
+    assert account.user_id == persistence[2].id
+    assert account.profile == profile
+    auth.users.get_user_by_email.assert_called_once_with(persistence[1], "sample@example.invalid")
+
+
+def test_profile_is_returned_from_session_and_cleared_on_logout(client, monkeypatch) -> None:
+    profile = GoogleProfile(
+        name="Synthetic Person", picture="https://lh3.googleusercontent.com/test"
+    )
+    user_id = uuid4()
+    monkeypatch.setattr(
+        auth, "finish_authorization", Mock(return_value=auth.AuthorizedAccount(user_id, profile))
+    )
+    client.get("/api/auth/google")
+    with client.session_transaction() as session:
+        state = session["oauth"]["state"]
+    client.get("/api/auth/google/callback", query_string={"state": state, "code": "synthetic"})
+    monkeypatch.setattr(
+        auth,
+        "connection_status",
+        Mock(
+            return_value=ConnectionStatus(
+                configured=True,
+                authenticated=True,
+                user_id=user_id,
+                email="sample@example.invalid",
+                connection_status="connected",
+            )
+        ),
+    )
+    data = client.get("/api/auth/status").json["data"]
+    assert data["picture_url"] == profile.picture
+    assert data["display_name"] == profile.name
+    with client.session_transaction() as session:
+        assert "synthetic-access" not in str(session)
+        assert session["google_profile"] == profile.model_dump()
+    client.post("/api/auth/logout", headers={"X-CSRF-Token": data["csrf_token"]})
+    data = client.get("/api/auth/status").json["data"]
+    assert data["display_name"] is None and data["picture_url"] is None
+
+
+def test_profile_fetch_uses_bearer_header_and_missing_scope_makes_no_request(monkeypatch) -> None:
+    request = Mock(
+        return_value=Mock(
+            status_code=200,
+            json=Mock(
+                return_value={
+                    "name": "Synthetic",
+                    "picture": "https://lh3.googleusercontent.com/test",
+                }
+            ),
+        )
+    )
+    monkeypatch.setattr(auth.requests, "get", request)
+    assert auth.get_google_profile(Credentials(token="synthetic", scopes=auth.GMAIL_SCOPES)) is None
+    request.assert_not_called()
+    profile = auth.get_google_profile(Credentials(token="synthetic", scopes=auth.OAUTH_SCOPES))
+    assert profile.name == "Synthetic"
+    request.assert_called_once_with(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": "Bearer synthetic"},
+        timeout=5,
+        allow_redirects=False,
+    )
+
+
+@pytest.mark.parametrize("failure", [requests.Timeout(), ValueError(), requests.HTTPError()])
+def test_optional_profile_failures_do_not_raise(monkeypatch, failure) -> None:
+    monkeypatch.setattr(auth.requests, "get", Mock(side_effect=failure))
+    assert auth.get_google_profile(Credentials(token="synthetic", scopes=auth.OAUTH_SCOPES)) is None
+
+
+def test_declining_optional_profile_still_accepts_required_gmail_scope(
+    auth_settings, persistence, monkeypatch
+) -> None:
+    flow = auth.create_google_oauth_flow(auth_settings)
+    warning = Warning("Scopes differ")
+    warning.token = {
+        "access_token": "synthetic-access",
+        "refresh_token": "synthetic-refresh",
+        "token_type": "Bearer",
+        "expires_at": time.time() + 3600,
+        "scope": list(auth.GMAIL_SCOPES),
+    }
+    fetch = Mock(side_effect=warning)
+    monkeypatch.setattr(flow, "fetch_token", fetch)
+    monkeypatch.setattr(auth, "create_google_oauth_flow", Mock(return_value=flow))
+    monkeypatch.setattr(auth, "create_gmail_client", Mock(return_value=Mock()))
+    monkeypatch.setattr(auth, "get_gmail_profile", Mock(return_value="sample@example.invalid"))
+    profile_request = Mock()
+    monkeypatch.setattr(auth.requests, "get", profile_request)
+    account = auth.finish_authorization(
+        auth_settings,
+        persistence[0],
+        code="synthetic",
+        state="state",
+        code_verifier="verifier",
+        expected_user_id=None,
+    )
+    assert account.user_id == persistence[2].id and account.profile is None
+    fetch.assert_called_once()
+    profile_request.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.invalid/photo",
+        "javascript:alert(1)",
+        "http://lh3.googleusercontent.com/photo",
+        "https://lh3.googleusercontent.com.evil.invalid/photo",
+        "https://user:password@lh3.googleusercontent.com/photo",
+        "https://lh3.googleusercontent.com:444/photo",
+    ],
+)
+def test_profile_rejects_non_google_or_unsafe_picture_urls(url) -> None:
+    assert GoogleProfile(picture=url).picture is None
 
 
 @pytest.mark.parametrize(

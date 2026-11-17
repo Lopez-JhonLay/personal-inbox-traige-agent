@@ -6,7 +6,7 @@ from app.config import Settings
 from app.database import create_database
 from app.models import Base
 from app.services.ai_service import create_openrouter_client
-from app.services.auth_service import GMAIL_SCOPES, create_google_oauth_flow
+from app.services.auth_service import OAUTH_SCOPES, create_google_oauth_flow
 from app.services.gmail_service import create_gmail_client
 
 
@@ -62,7 +62,7 @@ def test_google_clients_construct_without_network_calls() -> None:
         google_client_secret="test-secret",
     )
     flow = create_google_oauth_flow(settings)
-    assert tuple(flow.oauth2session.scope) == GMAIL_SCOPES
+    assert tuple(flow.oauth2session.scope) == OAUTH_SCOPES
     assert flow.redirect_uri == settings.google_redirect_uri
     client = create_gmail_client(Credentials(token="test-token"))
     try:

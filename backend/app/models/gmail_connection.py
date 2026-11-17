@@ -23,6 +23,7 @@ class GmailConnection(IdentityMixin, UpdatedMixin, Base):
     status: Mapped[str] = mapped_column(String(30))
     operation_id: Mapped[UUID | None]
     operation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     connected_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

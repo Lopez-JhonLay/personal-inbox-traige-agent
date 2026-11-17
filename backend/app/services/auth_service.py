@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from uuid import UUID
 
 import requests
@@ -11,13 +12,43 @@ from app.config import Settings
 from app.database import Database
 from app.repositories import gmail_connection_repository as connections
 from app.repositories import user_repository as users
-from app.schemas.gmail_schema import ConnectionStatus
+from app.schemas.gmail_schema import ConnectionStatus, GoogleProfile
 from app.services.gmail_service import create_gmail_client, get_gmail_profile
 from app.services.integration_errors import IntegrationError
 from app.utils.deadline import remaining_time
 from app.utils.token_encryption import decrypt_token, encrypt_token, token_cipher
 
 GMAIL_SCOPES = ("https://www.googleapis.com/auth/gmail.readonly",)
+PROFILE_SCOPE = "https://www.googleapis.com/auth/userinfo.profile"
+OAUTH_SCOPES = (*GMAIL_SCOPES, PROFILE_SCOPE)
+
+
+@dataclass(frozen=True)
+class AuthorizedAccount:
+    user_id: UUID
+    profile: GoogleProfile | None = None
+
+
+def get_google_profile(credentials: Credentials) -> GoogleProfile | None:
+    scopes = credentials.granted_scopes
+    if scopes is None:
+        scopes = credentials.scopes or []
+    if not credentials.token or not ({PROFILE_SCOPE, "profile"} & set(scopes)):
+        return None
+    try:
+        response = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            timeout=5,
+            allow_redirects=False,
+        )
+        response.raise_for_status()
+        if response.status_code != 200:
+            return None
+        return GoogleProfile.model_validate(response.json())
+    except requests.RequestException, ValueError, TypeError:
+        # A cosmetic profile failure must not prevent access to the user's saved inbox.
+        return None
 
 
 class TokenRequest(Request):
@@ -47,7 +78,7 @@ def create_google_oauth_flow(
                 "redirect_uris": [settings.google_redirect_uri],
             }
         },
-        scopes=GMAIL_SCOPES,
+        scopes=OAUTH_SCOPES,
         redirect_uri=settings.google_redirect_uri,
         state=state,
         code_verifier=code_verifier,
@@ -96,12 +127,26 @@ def finish_authorization(
     state: str,
     code_verifier: str,
     expected_user_id: UUID | None,
-) -> UUID:
+) -> AuthorizedAccount:
     flow = create_google_oauth_flow(settings, state=state, code_verifier=code_verifier)
     try:
-        flow.fetch_token(code=code, timeout=15)
+        try:
+            flow.fetch_token(code=code, timeout=15)
+        except Warning as error:
+            # oauthlib raises with the already-exchanged token when granted scopes differ.
+            # Honor that response and enforce Gmail permission below; never exchange a code twice.
+            token = getattr(error, "token", None)
+            if (
+                not isinstance(token, dict)
+                or not isinstance(token.get("access_token"), str)
+                or not isinstance(token.get("expires_at"), (int, float))
+            ):
+                raise ValueError("Invalid scope-change response") from None
+            flow.oauth2session.token = token
         credentials = flow.credentials
-        granted = credentials.granted_scopes or credentials.scopes or []
+        granted = credentials.granted_scopes
+        if granted is None:
+            granted = credentials.scopes or []
         if not set(GMAIL_SCOPES).issubset(granted):
             raise IntegrationError(
                 "GMAIL_PERMISSION_DENIED", "Read-only Gmail access is required.", 403
@@ -119,11 +164,12 @@ def finish_authorization(
         raise IntegrationError(
             "OAUTH_FAILED", "Gmail authorization failed. Please try again.", 502
         ) from None
+    profile = get_google_profile(credentials)
     with database.session_factory.begin() as session:
         user = users.get_user_by_email(session, email)
         if expected_user_id is not None and (user is None or user.id != expected_user_id):
             raise IntegrationError(
-                "ACCOUNT_MISMATCH", "Disconnect before choosing another account.", 409
+                "ACCOUNT_MISMATCH", "Log out before choosing another account.", 409
             )
         if user is None:
             user = users.create_user(session, email=email)
@@ -145,7 +191,7 @@ def finish_authorization(
             status="connected",
             encrypted_refresh_token=ciphertext,
         )
-        return user.id
+        return AuthorizedAccount(user_id=user.id, profile=profile)
 
 
 def credentials_for_user(

@@ -85,6 +85,14 @@ def list_emails() -> Response:
     )
 
 
+@emails_bp.get("/overview")
+def overview() -> Response:
+    return jsonify(
+        success=True,
+        data=email_service.user_overview(current_app.extensions["database"], g.email_user_id),
+    )
+
+
 @emails_bp.get("/<uuid:email_id>")
 def detail(email_id: UUID) -> Response:
     return jsonify(

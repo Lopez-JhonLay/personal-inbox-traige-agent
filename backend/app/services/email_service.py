@@ -2,6 +2,7 @@ import json
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -12,6 +13,7 @@ from app.models import Email, EmailAnalysisRecord
 from app.repositories import analysis_repository as analyses
 from app.repositories import email_query_repository as queries
 from app.repositories import email_repository as emails
+from app.repositories import gmail_connection_repository as connections
 from app.repositories import operation_repository as operations
 from app.repositories import user_repository as users
 from app.schemas.analysis_schema import EmailAnalysis, EmailInput
@@ -96,6 +98,21 @@ def list_user_emails(database: Database, user_id: UUID, query: EmailQuery) -> di
             "total": total,
             "limit": query.limit,
             "offset": query.offset,
+        }
+
+
+def user_overview(database: Database, user_id: UUID) -> dict:
+    with database.session_factory.begin() as session:
+        user = users.get_user(session, user_id)
+        if user is None:
+            raise IntegrationError("AUTH_REQUIRED", "Connect Gmail to continue.", 401)
+        connection = connections.get_connection(session, user_id)
+        synced = connection.last_synced_at if connection else None
+        return {
+            "email": user.email,
+            "timezone": user.timezone,
+            "last_synced_at": synced.isoformat() if synced else None,
+            **queries.overview_counts(session, user_id),
         }
 
 
@@ -190,6 +207,10 @@ def sync_emails(settings: Settings, database: Database, user_id: UUID) -> dict:
                     result.errors.append({"code": error.code, "message": error.message})
         finally:
             client.close()
+        if not (result.failed or result.deferred or result.errors):
+            with database.session_factory.begin() as session:
+                connection = operations.require_operation(session, user_id, operation_id)
+                connection.last_synced_at = datetime.now(UTC)
     return result.model_dump()
 
 

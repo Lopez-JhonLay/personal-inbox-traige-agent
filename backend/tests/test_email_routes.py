@@ -55,6 +55,9 @@ def test_large_request_is_rejected(email_client) -> None:
         "priority=urgent",
         "category=invalid",
         "analysis_status=unknown",
+        "sort=alphabetical",
+        "reply_needed=maybe",
+        "has_pending_action=invalid",
         "extra=1",
     ],
 )
@@ -62,6 +65,20 @@ def test_invalid_queries(email_client, query) -> None:
     response = email_client.get(f"/api/emails?{query}")
     assert response.status_code == 400
     assert response.json["error"]["code"] == "INVALID_REQUEST"
+
+
+def test_overview_is_private_and_delegates_to_owned_service(email_client, monkeypatch) -> None:
+    overview = Mock(return_value={"analyzed_count": 2})
+    monkeypatch.setattr(service, "user_overview", overview)
+    response = email_client.get("/api/emails/overview")
+    assert response.status_code == 200
+    assert response.json["data"] == {"analyzed_count": 2}
+    assert response.headers["Cache-Control"] == "no-store"
+    with email_client.session_transaction() as session:
+        assert str(overview.call_args.args[1]) == session["user_id"]
+        session.clear()
+    assert email_client.get("/api/emails/overview").status_code == 401
+    assert overview.call_count == 1
 
 
 def test_list_sync_detail_and_history_contracts(email_client, monkeypatch) -> None:

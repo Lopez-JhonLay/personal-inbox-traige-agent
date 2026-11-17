@@ -11,6 +11,8 @@ import {
 } from '../services/emails'
 import { deferred, harness, testAuth, testSync } from '../test/helpers'
 import { GmailConnection } from './GmailConnection'
+import { GoogleSignInButton } from './GoogleSignIn'
+import { InboxProcessing } from './InboxProcessing'
 import { Button } from './ui/Button'
 
 vi.mock('../services/auth', () => ({
@@ -38,25 +40,24 @@ it('shows loading before displaying account information', async () => {
   vi.mocked(getConnectionStatus).mockReturnValue(loading.promise)
   const { wrapper } = harness(null)
   render(<GmailConnection />, { wrapper })
-  expect(screen.getByText('Checking connection…')).toBeInTheDocument()
+  expect(screen.getByText('Checking connection...')).toBeInTheDocument()
   expect(
-    screen.queryByRole('button', { name: 'Sync Inbox' }),
+    screen.queryByRole('button', { name: 'Sync inbox' }),
   ).not.toBeInTheDocument()
   await act(async () => {
     loading.resolve(testAuth)
   })
   expect(
-    await screen.findByText(`Connected as ${testAuth.email}`),
+    await screen.findByText(`Signed in as ${testAuth.email}`),
   ).toBeInTheDocument()
 })
 
 it('offers connection only after an anonymous session is known', () => {
   const { wrapper } = harness(anonymousStatus())
-  render(<GmailConnection />, { wrapper })
-  expect(screen.getByRole('link', { name: 'Connect Gmail' })).toHaveAttribute(
-    'href',
-    '/api/auth/google',
-  )
+  render(<GoogleSignInButton />, { wrapper })
+  expect(
+    screen.getByRole('link', { name: 'Continue with Google' }),
+  ).toHaveAttribute('href', '/api/auth/google')
   expect(listStoredEmails).not.toHaveBeenCalled()
 })
 
@@ -70,25 +71,34 @@ it('shows a retryable auth error without treating a network failure as sign-out'
     await client.invalidateQueries({ queryKey: authKey })
   })
   expect(
-    await screen.findByText(
-      'Gmail connection is unavailable. You can still try the sample inbox.',
-    ),
+    await screen.findByText('Gmail access status is unavailable.'),
   ).toBeInTheDocument()
-  expect(screen.getByText(`Connected as ${testAuth.email}`)).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Sync Inbox' })).toBeDisabled()
+  expect(screen.getByText(`Signed in as ${testAuth.email}`)).toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Sync inbox' }),
+  ).not.toBeInTheDocument()
 })
 
-it('shows an empty state and requires confirmation before sync', async () => {
+it('hides irrelevant recovery controls and requires confirmation before sync', async () => {
   const user = userEvent.setup()
   const { wrapper } = harness()
-  render(<GmailConnection />, { wrapper })
-  expect(await screen.findByText('No emails imported yet')).toBeInTheDocument()
+  render(
+    <InboxProcessing
+      userId="user-a"
+      syncQuery={testAuth.sync_query}
+      onBusyChange={vi.fn()}
+    />,
+    { wrapper },
+  )
+  expect(screen.getByRole('button', { name: 'Sync inbox' })).toBeInTheDocument()
   expect(
-    screen.getByRole('button', { name: 'Continue analysis' }),
-  ).toBeDisabled()
-  await user.click(screen.getByRole('button', { name: 'Sync Inbox' }))
+    screen.queryByRole('button', { name: 'Continue analysis' }),
+  ).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Sync inbox' }))
   const modal = screen.getByRole('dialog', { name: 'Sync and analyze emails?' })
-  expect(within(modal).getByText(/Email text will be sent/)).toBeInTheDocument()
+  expect(
+    within(modal).getByText(/Your email text is shared with our AI service/),
+  ).toBeInTheDocument()
   expect(syncInbox).not.toHaveBeenCalled()
   await user.click(within(modal).getByRole('button', { name: 'Cancel' }))
   expect(modal).not.toHaveAttribute('open')
@@ -97,9 +107,22 @@ it('shows an empty state and requires confirmation before sync', async () => {
 
 it('keeps cached counts visible on failure, and Retry only refreshes reads', async () => {
   const user = userEvent.setup()
+  vi.mocked(listStoredEmails).mockImplementation(async (status) => ({
+    emails: [],
+    total: status === 'pending' ? 2 : 0,
+    limit: 1,
+    offset: 0,
+  }))
   const { client, wrapper } = harness()
-  render(<GmailConnection />, { wrapper })
-  await screen.findByText('No emails imported yet')
+  render(
+    <InboxProcessing
+      userId="user-a"
+      syncQuery={testAuth.sync_query}
+      onBusyChange={vi.fn()}
+    />,
+    { wrapper },
+  )
+  await screen.findByText('2 unfinished analyses')
   vi.mocked(listStoredEmails).mockRejectedValue(
     new ApiError('Unavailable.', 'NETWORK_ERROR'),
   )
@@ -107,8 +130,8 @@ it('keeps cached counts visible on failure, and Retry only refreshes reads', asy
     await client.invalidateQueries({ queryKey: emailKeys.counts('user-a') })
   })
   expect(
-    screen.getByRole('region', { name: 'Stored processing counts' }),
-  ).toHaveTextContent('0 analyzed')
+    screen.getByRole('region', { name: 'Unfinished analyses' }),
+  ).toHaveTextContent('2 unfinished analyses')
   expect(
     await screen.findByText(
       'Could not refresh processing counts. Saved progress is unchanged.',
@@ -136,8 +159,8 @@ it('supports keyboard cancellation of the disconnect confirmation', async () => 
   const user = userEvent.setup()
   const { wrapper } = harness()
   render(<GmailConnection />, { wrapper })
-  await user.click(screen.getByRole('button', { name: 'Disconnect' }))
-  const modal = screen.getByRole('dialog', { name: 'Disconnect Gmail?' })
+  await user.click(screen.getByRole('button', { name: 'Remove Gmail access' }))
+  const modal = screen.getByRole('dialog', { name: 'Remove Gmail access?' })
   expect(within(modal).getByRole('button', { name: 'Cancel' })).toHaveFocus()
   await user.keyboard('{Enter}')
   expect(modal).not.toHaveAttribute('open')
@@ -150,20 +173,22 @@ it('disables busy disconnect controls and removes private processing state on su
   vi.mocked(disconnectGmail).mockReturnValue(disconnecting.promise)
   const { wrapper } = harness()
   render(<GmailConnection />, { wrapper })
-  await screen.findByText('No emails imported yet')
-  await user.click(screen.getByRole('button', { name: 'Disconnect' }))
-  const modal = screen.getByRole('dialog', { name: 'Disconnect Gmail?' })
+  expect(screen.getByText(`Signed in as ${testAuth.email}`)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Remove Gmail access' }))
+  const modal = screen.getByRole('dialog', { name: 'Remove Gmail access?' })
   await user.click(
-    within(modal).getByRole('button', { name: 'Disconnect Gmail' }),
+    within(modal).getByRole('button', { name: 'Remove access and log out' }),
   )
   expect(
-    await within(modal).findByRole('button', { name: 'Disconnecting…' }),
+    await within(modal).findByRole('button', { name: 'Removing access...' }),
   ).toBeDisabled()
   expect(within(modal).getByRole('button', { name: 'Cancel' })).toBeDisabled()
   await act(async () => {
     disconnecting.resolve(true)
   })
-  expect(await screen.findByText('Gmail disconnected.')).toBeInTheDocument()
+  expect(
+    await screen.findByText('Gmail access removed. You are logged out.'),
+  ).toBeInTheDocument()
   expect(screen.queryByText('Process your inbox')).not.toBeInTheDocument()
 })
 
@@ -194,12 +219,19 @@ it('a confirmed sync with no pending IDs does not invoke analysis', async () => 
     pending_email_ids: [],
   })
   const { wrapper } = harness()
-  render(<GmailConnection />, { wrapper })
-  await user.click(screen.getByRole('button', { name: 'Sync Inbox' }))
+  render(
+    <InboxProcessing
+      userId="user-a"
+      syncQuery={testAuth.sync_query}
+      onBusyChange={vi.fn()}
+    />,
+    { wrapper },
+  )
+  await user.click(screen.getByRole('button', { name: 'Sync inbox' }))
   await user.click(
     within(
       screen.getByRole('dialog', { name: 'Sync and analyze emails?' }),
-    ).getByRole('button', { name: 'Continue' }),
+    ).getByRole('button', { name: 'Sync and analyze' }),
   )
   await screen.findByText(/0 analyzed, 0 analysis failures in this run/)
   expect(syncInbox).toHaveBeenCalledTimes(1)

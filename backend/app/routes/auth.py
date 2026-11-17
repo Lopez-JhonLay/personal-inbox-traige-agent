@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings
 from app.database import Database
-from app.schemas.gmail_schema import ConnectionStatus
+from app.schemas.gmail_schema import ConnectionStatus, GoogleProfile
 from app.services import auth_service
 from app.services.integration_errors import IntegrationError
 from app.utils.auth_session import current_user_id, require_csrf, require_user_id
@@ -36,7 +36,8 @@ def start_google() -> Response:
     verifier = secrets.token_urlsafe(64)
     session["oauth"] = {"state": state, "verifier": verifier, "issued_at": time.time()}
     flow = auth_service.create_google_oauth_flow(settings, state=state, code_verifier=verifier)
-    url, _ = flow.authorization_url(access_type="offline", prompt="consent", state=state)
+    prompt = "select_account consent" if request.args.get("reconnect") == "1" else "select_account"
+    url, _ = flow.authorization_url(access_type="offline", prompt=prompt, state=state)
     return redirect(url)
 
 
@@ -63,7 +64,7 @@ def google_callback() -> Response:
         code = request.args.get("code")
         if not code:
             raise IntegrationError("OAUTH_CODE_MISSING", "Authorization code is missing.", 400)
-        user_id = auth_service.finish_authorization(
+        account = auth_service.finish_authorization(
             settings,
             database,
             code=code,
@@ -73,16 +74,19 @@ def google_callback() -> Response:
         )
         session.clear()
         session.permanent = True
-        session["user_id"] = str(user_id)
+        session["user_id"] = str(account.user_id)
         session["csrf_token"] = secrets.token_urlsafe(32)
+        if account.profile is not None:
+            session["google_profile"] = account.profile.model_dump(exclude_none=True)
     except IntegrationError as error:
         outcome = error.code
         current_app.logger.warning("Google authorization failed: %s", error.code)
     except SQLAlchemyError:
         outcome = "DATABASE_UNAVAILABLE"
-    return redirect(
-        f"{settings.frontend_url.rstrip('/')}/?{urlencode({'gmail': outcome})}#gmail-connection"
-    )
+    base = settings.frontend_url.rstrip("/")
+    if outcome == "connected":
+        return redirect(f"{base}/dashboard")
+    return redirect(f"{base}/?{urlencode({'gmail': outcome})}#gmail-connection")
 
 
 @auth_bp.get("/status")
@@ -102,6 +106,12 @@ def status() -> Response:
                     "DATABASE_UNAVAILABLE", "Connection status is unavailable."
                 ) from None
         if result.authenticated:
+            try:
+                profile = GoogleProfile.model_validate(session.get("google_profile", {}))
+                result.display_name = profile.name
+                result.picture_url = profile.picture
+            except ValueError:
+                pass
             result.sync_query = settings.gmail_sync_query
             if "csrf_token" not in session:
                 session["csrf_token"] = secrets.token_urlsafe(32)
@@ -124,3 +134,12 @@ def disconnect() -> Response:
         ) from None
     session.clear()
     return jsonify(success=True, data={"disconnected": True, "revoked": revoked})
+
+
+@auth_bp.post("/logout")
+def logout() -> Response:
+    # Logging out only removes this browser's session; no provider/database access is needed.
+    require_user_id()
+    require_csrf()
+    session.clear()
+    return jsonify(success=True, data={"logged_out": True})

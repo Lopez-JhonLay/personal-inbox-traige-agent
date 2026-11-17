@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { ApiError } from '../services/api'
 import type { ConnectionStatus } from '../types/api'
+import type { EmailFilters } from '../types/api'
 
 export const authKey = ['auth', 'status'] as const
 export const emailKeys = {
@@ -8,6 +9,11 @@ export const emailKeys = {
   counts: (userId: string) => ['emails', userId, 'counts'] as const,
   list: (userId: string, status: string) =>
     ['emails', userId, 'list', { status, limit: 20 }] as const,
+  overview: (userId: string) => ['emails', userId, 'overview'] as const,
+  browse: (userId: string, filters: EmailFilters) =>
+    ['emails', userId, 'browse', filters] as const,
+  detail: (userId: string, id: string) =>
+    ['emails', userId, 'detail', id] as const,
 }
 
 export function anonymousStatus(configured = true): ConnectionStatus {

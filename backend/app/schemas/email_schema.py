@@ -16,6 +16,9 @@ class EmailQuery(BaseModel):
     priority: Priority | None = None
     category: Category | None = None
     analysis_status: AnalysisStatus | None = None
+    reply_needed: bool | None = None
+    has_pending_action: bool | None = None
+    sort: Literal["received_desc", "received_asc", "priority_desc"] = "received_desc"
 
 
 class PageQuery(BaseModel):

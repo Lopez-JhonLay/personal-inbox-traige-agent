@@ -18,6 +18,10 @@ export async function disconnectGmail(csrfToken: string): Promise<boolean> {
   return result.revoked
 }
 
-export function googleConnectUrl(): string {
-  return apiUrl('/auth/google')
+export function googleConnectUrl(reconnect = false): string {
+  return apiUrl(`/auth/google${reconnect ? '?reconnect=1' : ''}`)
+}
+
+export async function logout(csrfToken: string): Promise<void> {
+  await apiRequest('/auth/logout', { method: 'POST', csrfToken })
 }

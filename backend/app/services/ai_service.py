@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ from openai import (
 from pydantic import ValidationError
 
 from app.config import Settings
-from app.schemas.analysis_schema import EmailAnalysis, EmailInput
+from app.schemas.analysis_schema import EmailAnalysis, EmailInput, ProviderEmailAnalysis
 from app.services.analysis_prompt import PROMPT_VERSION, build_messages
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ def analyze_email(
                         "json_schema": {
                             "name": "email_analysis",
                             "strict": True,
-                            "schema": EmailAnalysis.model_json_schema(),
+                            "schema": ProviderEmailAnalysis.model_json_schema(),
                         },
                     },
                     max_tokens=4096,
@@ -95,7 +96,26 @@ def analyze_email(
                 if choice.finish_reason != "stop" or not choice.message.content:
                     output_issue = "truncated_or_empty"
                     raise ValueError("Incomplete completion.")
-                result = EmailAnalysis.model_validate_json(choice.message.content)
+                try:
+                    provider_result = ProviderEmailAnalysis.model_validate_json(
+                        choice.message.content
+                    )
+                except ValidationError as exc:
+                    issues = exc.errors(include_input=False, include_context=False)
+                    if not all(issue["loc"][:1] == ("draft_reply",) for issue in issues):
+                        raise
+                    # A bad optional reply must not discard otherwise valid analysis.
+                    payload = json.loads(choice.message.content)
+                    payload["draft_reply"] = None
+                    provider_result = ProviderEmailAnalysis.model_validate_json(json.dumps(payload))
+                    logger.warning("AI reply omitted reason=invalid_reply_sections")
+                payload = provider_result.model_dump(mode="json", exclude={"draft_reply"})
+                payload["draft_reply"] = (
+                    provider_result.draft_reply.as_text()
+                    if provider_result.reply_needed and provider_result.draft_reply is not None
+                    else None
+                )
+                result = EmailAnalysis.model_validate_json(json.dumps(payload))
                 if result.deadline_text is not None:
                     source = " ".join(f"{email.subject}\n{email.body}".split()).casefold()
                     phrase = " ".join(result.deadline_text.split()).casefold()
@@ -140,7 +160,7 @@ def analyze_email(
             except ValidationError, ValueError, APIResponseValidationError:
                 error = AnalysisError(
                     "AI_INVALID_OUTPUT",
-                    "The AI returned invalid analysis.",
+                    "We couldn\u2019t finish analyzing this email. Please try again.",
                     502,
                     reason=output_issue,
                 )

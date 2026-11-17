@@ -14,10 +14,11 @@
       "deadline": "2026-11-17",
       "reply_needed": true
     },
-    "review": "Summary and draft must not claim the draft has been read or promise completion.",
+    "review": "Summary must stay factual. Draft must include a positive intention to review the draft and share feedback, without claiming the review is already done. Mention the requested deadline as a target, not a guarantee. Require a professional greeting, 2-4 useful contextual body sentences, blank-line paragraph separation, and a closing such as Best regards. No invented signature, placeholders, generic filler, completed work, or guaranteed commitments.",
     "required_non_null": [
       "requested_action",
-      "suggested_action"
+      "suggested_action",
+      "draft_reply"
     ]
   },
   {
@@ -56,9 +57,10 @@
       "deadline": null,
       "reply_needed": true
     },
-    "review": "Must not treat the meeting period as a response deadline or invent availability.",
+    "review": "Must express positive willingness to coordinate without accepting a time or inventing availability. Must not treat the meeting period as a response deadline. Require a professional greeting, 2-4 useful contextual body sentences, blank-line paragraph separation, and a closing such as Best regards. No invented signature, placeholders, generic filler, completed work, or guaranteed commitments.",
     "required_non_null": [
-      "requested_action"
+      "requested_action",
+      "draft_reply"
     ]
   },
   {

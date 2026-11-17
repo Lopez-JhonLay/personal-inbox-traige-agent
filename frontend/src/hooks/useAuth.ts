@@ -5,7 +5,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { ApiError } from '../services/api'
-import { disconnectGmail, getConnectionStatus } from '../services/auth'
+import { disconnectGmail, getConnectionStatus, logout } from '../services/auth'
 import { authKey, endSession } from '../query/queryClient'
 import type { ConnectionStatus } from '../types/api'
 
@@ -40,6 +40,17 @@ export function useDisconnectGmail(userId: string | null) {
     mutationKey: ['auth', 'disconnect'],
     mutationFn: () =>
       disconnectGmail(requireSession(client, userId ?? '').csrf_token),
+    onSuccess: async () => {
+      await endSession(client)
+    },
+  })
+}
+
+export function useLogout(userId: string | null) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationKey: ['auth', 'logout'],
+    mutationFn: () => logout(requireSession(client, userId ?? '').csrf_token),
     onSuccess: async () => {
       await endSession(client)
     },

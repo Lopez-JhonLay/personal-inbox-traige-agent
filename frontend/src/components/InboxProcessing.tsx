@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { useProcessingCounts } from '../hooks/useEmails'
 import {
   type ProcessingAction,
   useInboxProcessing,
 } from '../hooks/useInboxProcessing'
-import { Badge } from './ui/Badge'
+import { formatTimestamp } from '../utils/dates'
 import { Button } from './ui/Button'
-import { EmptyState } from './ui/EmptyState'
 import { ErrorState } from './ui/ErrorState'
 import { LoadingIndicator } from './ui/LoadingIndicator'
 
@@ -15,17 +15,26 @@ export function InboxProcessing({
   syncQuery,
   disabled = false,
   onBusyChange,
+  lastSyncedAt,
+  timezone = 'Asia/Manila',
+  reading = false,
+  children,
 }: {
   userId: string
   syncQuery: string
   disabled?: boolean
   onBusyChange: (busy: boolean) => void
+  lastSyncedAt?: string | null
+  timezone?: string
+  reading?: boolean
+  children?: ReactNode
 }) {
   const counts = useProcessingCounts(userId)
   const processing = useInboxProcessing(userId)
   const [action, setAction] = useState<ProcessingAction>('sync')
   const dialog = useRef<HTMLDialogElement>(null)
   const busy = processing.isRunning
+  const progress = processing.progress
   useEffect(() => {
     onBusyChange(busy)
   }, [busy, onBusyChange])
@@ -38,115 +47,175 @@ export function InboxProcessing({
     dialog.current?.close()
     void processing.run(action)
   }
-  const empty =
-    counts.data && Object.values(counts.data).every((count) => count === 0)
-
+  const status =
+    progress.phase === 'syncing'
+      ? 'Syncing inbox...'
+      : progress.phase === 'preparing'
+        ? 'Preparing emails...'
+        : progress.phase === 'analyzing'
+          ? `Analyzing ${progress.current} of ${progress.total}`
+          : progress.phase === 'paused'
+            ? 'Processing paused. Completed results are saved.'
+            : progress.phase === 'failed'
+              ? 'Could not finish processing. Saved emails are unchanged.'
+              : progress.phase === 'finished'
+                ? `${progress.completed} analyzed, ${progress.failed} analysis failures in this run.`
+                : ''
   return (
-    <div className="mt-6 border-t border-line pt-5" aria-busy={busy}>
-      <h3 className="text-lg">Process your inbox</h3>
-      <p className="mt-2 text-sm text-muted">
-        Sync saves email text in Mailkind and sends pending messages to the
-        configured AI provider. The inbox preview above stays fictional.
-      </p>
-      <p className="mt-2 text-sm text-muted">
-        Continue and retry process up to 20 stored emails per run.
-      </p>
-      <p className="mt-2 text-sm text-muted">
-        {syncQuery
-          ? `Inbox filter: ${syncQuery}`
-          : 'Import scope: recent inbox messages.'}
-      </p>
-      {counts.isPending && (
-        <div className="mt-3">
-          <LoadingIndicator label="Loading processing counts…" />
+    <section aria-label="Inbox controls" className="mb-5">
+      <div
+        className={`${reading ? 'hidden lg:flex' : 'flex'} flex-wrap items-center justify-between gap-4`}
+      >
+        <div>
+          <h1 className="text-heading">Inbox</h1>
+          <p className="mt-1 text-xs text-muted">
+            Last successful sync:{' '}
+            {lastSyncedAt
+              ? formatTimestamp(lastSyncedAt, timezone)
+              : 'No successful sync recorded'}
+          </p>
         </div>
-      )}
-      {counts.data && (
-        <section
-          className="cluster mt-3 gap-2"
-          aria-label="Stored processing counts"
-        >
-          <Badge>{counts.data.pending} pending</Badge>
-          <Badge tone="success">{counts.data.completed} analyzed</Badge>
-          <Badge tone={counts.data.failed ? 'warning' : 'neutral'}>
-            {counts.data.failed} failed
-          </Badge>
-        </section>
-      )}
-      {empty && (
-        <EmptyState
-          title="No emails imported yet"
-          message="Start with Sync Inbox when your test messages are ready."
-        />
-      )}
-      {counts.isError && (
-        <ErrorState
-          message="Could not refresh processing counts. Saved progress is unchanged."
-          onRetry={() => {
-            void counts.refetch()
-          }}
-          retrying={counts.isFetching}
-        />
-      )}
-      <div className="cluster mt-4 gap-3">
-        <Button
-          className="text-sm"
-          disabled={busy || disabled}
-          onClick={() => confirm('sync')}
-        >
-          Sync Inbox
-        </Button>
-        <Button
-          variant="secondary"
-          className="text-sm"
-          disabled={busy || disabled || !counts.data?.pending}
-          onClick={() => confirm('pending')}
-        >
-          Continue analysis
-        </Button>
-        <Button
-          variant="secondary"
-          className="text-sm"
-          disabled={busy || disabled || !counts.data?.failed}
-          onClick={() => confirm('failed')}
-        >
-          Retry failed
+        <Button disabled={busy || disabled} onClick={() => confirm('sync')}>
+          <RefreshCw
+            className={`size-4 ${busy ? 'motion-safe:animate-spin' : ''}`}
+            aria-hidden="true"
+          />
+          Sync inbox
         </Button>
       </div>
-      <p role="status" aria-live="polite" className="mt-3 text-sm">
-        {processing.message}
-      </p>
+      {children && (
+        <div className={`${reading ? 'hidden lg:block' : ''} mt-4`}>
+          {children}
+        </div>
+      )}
+      <div className={reading && !busy ? 'hidden lg:block' : ''}>
+        {counts.isPending && (
+          <LoadingIndicator label="Loading processing status..." />
+        )}
+        {counts.data && (counts.data.pending > 0 || counts.data.failed > 0) && (
+          <section
+            aria-label="Unfinished analyses"
+            className="cluster mt-4 gap-x-4 gap-y-2 rounded-control border border-line bg-surface px-4 py-3 text-sm"
+          >
+            {counts.data.pending > 0 && (
+              <>
+                <span>{counts.data.pending} unfinished analyses</span>
+                <Button
+                  variant="secondary"
+                  className="text-xs"
+                  disabled={busy || disabled}
+                  onClick={() => confirm('pending')}
+                >
+                  Continue analysis
+                </Button>
+              </>
+            )}
+            {counts.data.failed > 0 && (
+              <>
+                <span>{counts.data.failed} failed analyses</span>
+                <Button
+                  variant="secondary"
+                  className="text-xs"
+                  disabled={busy || disabled}
+                  onClick={() => confirm('failed')}
+                >
+                  Retry failed
+                </Button>
+              </>
+            )}
+          </section>
+        )}
+        {counts.isError && (
+          <ErrorState
+            message="Could not refresh processing counts. Saved progress is unchanged."
+            onRetry={() => {
+              void counts.refetch()
+            }}
+            retrying={counts.isFetching}
+          />
+        )}
+      </div>
+      {progress.phase !== 'idle' && (
+        <section
+          aria-label="Processing progress"
+          aria-busy={busy}
+          className="mt-4 rounded-control border border-line bg-accent-soft px-4 py-3 text-sm"
+        >
+          <p role="status" aria-live="polite">
+            {status}
+          </p>
+          {busy && progress.phase !== 'analyzing' && (
+            <LoadingIndicator label="Working..." />
+          )}
+          {progress.total > 0 && (
+            <progress
+              aria-label="Analysis progress"
+              max={progress.total}
+              value={progress.completed + progress.failed}
+              className="mt-2 h-2 w-full accent-ink"
+            />
+          )}
+          {(progress.imported > 0 ||
+            progress.existing > 0 ||
+            progress.importFailed > 0 ||
+            progress.deferred > 0) && (
+            <p className="mt-2 text-xs text-muted">
+              {progress.imported} imported, {progress.existing} already saved,{' '}
+              {progress.importFailed} import failures, {progress.deferred}{' '}
+              deferred.
+            </p>
+          )}
+          {busy && (
+            <p className="mt-2 text-xs text-muted">
+              Leaving this page pauses remaining analyses. Completed results
+              stay saved.
+            </p>
+          )}
+        </section>
+      )}
       {processing.error && <ErrorState message={processing.error} />}
       <dialog
         ref={dialog}
         aria-labelledby="processing-title"
         className="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-panel border-2 border-ink bg-paper p-6 text-ink backdrop:bg-ink/40"
       >
-        <h3 id="processing-title" className="text-xl">
+        <h2 id="processing-title" className="text-xl">
           {action === 'sync'
             ? 'Sync and analyze emails?'
-            : 'Analyze stored emails?'}
-        </h3>
-        <p className="mt-3 text-sm text-muted">
+            : action === 'failed'
+              ? 'Try these emails again?'
+              : 'Continue analyzing emails?'}
+        </h2>
+        <p className="mt-3 text-sm">
           {action === 'sync'
-            ? 'Up to 20 matching inbox messages will be saved in Neon. '
-            : ''}
-          Email text will be sent to the configured OpenRouter model provider.
-          Its data policies apply. Completed work stays saved if you close the
-          page.
+            ? 'Bring in up to 20 matching emails from Gmail, then analyze any that still need it. '
+            : action === 'failed'
+              ? 'Try again for up to 20 emails we couldn’t analyze before. '
+              : 'Pick up where you left off with up to 20 saved emails. '}
+          Your email text is shared with our AI service to create summaries and
+          suggested replies. Nothing is sent to your contacts. Finished results
+          stay saved if you leave this page.
         </p>
-        {action === 'sync' && syncQuery && (
-          <p className="mt-3 text-sm">Inbox filter: {syncQuery}</p>
+        {action === 'sync' && (
+          <p className="mt-3 text-sm">
+            {syncQuery
+              ? `Inbox filter: ${syncQuery}`
+              : 'Emails to include: recent inbox messages.'}
+          </p>
         )}
         <div className="cluster mt-5 gap-3">
           <Button variant="secondary" onClick={() => dialog.current?.close()}>
             Cancel
           </Button>
           <Button onClick={start} disabled={disabled || busy}>
-            Continue
+            {action === 'sync'
+              ? 'Sync and analyze'
+              : action === 'failed'
+                ? 'Try again'
+                : 'Continue analysis'}
           </Button>
         </div>
       </dialog>
-    </div>
+    </section>
   )
 }

@@ -4,7 +4,11 @@
 
 Use **Mailkind** as the product name and "See what needs your attention." as the
 homepage headline. Keep copy warm and direct, with Lucide icons for useful actions
-and status indicators. The wordmark uses the existing display typography.
+and status indicators. The wordmark uses the existing display typography. The generated Mailkind mark is
+served from `public/images/mailkind-logo.png`: a butter-yellow tile with an ivory
+envelope and charcoal outlines. `BrandIdentity` shares the same mark and text across
+the landing header/footer and app header; the PNG is also the browser favicon.
+The generation prompt is saved in `docs/assets/mailkind-logo-prompt.md`.
 
 ## Reference and interpretation
 
@@ -28,9 +32,14 @@ when requested.
 Our adaptation uses independently chosen colors, system fonts, regular corners, and
 normal document flow. Readability, text selection, scrolling, and keyboard operation
 take priority for an inbox. No reference copy, fonts, images, icons, or branding are
-included. `pages/HomePage.tsx` now demonstrates this system with original page content,
-sample inbox data, and Lucide React icons. A separately sourced Unsplash workspace
-photo is served locally from `public/images/quiet-workspace.jpg`; it is not a reference asset.
+included. `pages/HomePage.tsx` uses original landing content and Lucide React icons;
+the right-side fictional inbox preview remains without Try the demo links. Its only sign-in control is in the
+navbar, visible at all widths. It uses the standard Google color logo on a white
+button, sourced from the [official branding assets](https://developers.google.com/identity/branding-guidelines)
+and served locally as `public/images/google-g.png`. The workspace illustration is generated for Mailkind and served locally from
+`public/images/mailkind-workspace.png`. It replaces the earlier stock photo, using
+warm cream paper, charcoal outlines, butter yellow, muted blue and sage accents.
+The Unsplash footer attribution is removed alongside the photo replacement.
 
 ## Files and tokens
 
@@ -156,3 +165,13 @@ and reduced-motion settings. The homepage has been verified in headless Chrome a
 loading, modal bounds, filters, copy/review actions, Escape dismissal, FAQs, mobile
 navigation, keyboard entry, and reduced motion. Desktop/mobile/dialog screenshots
 were visually reviewed. This verifies a local sample experience, not live integrations.
+
+
+## Dashboard panels
+
+Inbox pagination is a fixed flex footer outside the scrolling email list, so it stays
+at the bottom of the panel even for short pages. The reader keeps its header outside
+its scrolling content. Both inner scroll areas use `theme-scrollbar` with paper tracks,
+charcoal thumbs, rounded WebKit styling, a stable gutter, and native forced-color fallback.
+Panel loading uses a centered circular indicator; descriptive labels remain available
+to screen readers without visible loading text.

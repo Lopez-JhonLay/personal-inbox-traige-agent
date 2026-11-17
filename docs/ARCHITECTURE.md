@@ -45,6 +45,72 @@ cancel private reads and clear private caches; temporary failures retain cached 
 The existing API/schema and fictional demo are unchanged. 37 mocked frontend tests pass;
 manual browser review remains pending because computer-use could not verify the browser URL.
 
+Phase 7 adds React Router pages at `/dashboard` and `/settings`. The dashboard
+reads overview totals, server-filtered/paginated emails, and plain-text details through
+user-scoped TanStack Query hooks. Sync/analysis controls live only on the dashboard.
+Classification totals and filters use the latest completed analysis, while the current
+attempt status is displayed separately. Reanalysis confirms `force: true` and preserves
+previous completed results on failure. Settings displays the saved timezone read-only.
+
+The dashboard UX refinement retains the existing backend and schema. The top navigation
+stays compact and includes account identity. Redundant summary totals and unavailable
+action-tracking UI are hidden. A single responsive toolbar holds priority, category,
+reply-needed and analysis-status filtering, sorting, and Clear filters. Highest-priority default sorting
+and a stable desktop list/reader workspace use existing ownership-scoped GET APIs.
+Mobile reading hides the overview/filter controls, with focus/scroll restored on return.
+Original email and suggested reply text are native disclosures; missing extracted fields
+are omitted. A single mounted processing component owns the existing sequential queue
+and exposes typed progress state. Sync remains confirmed, recovery controls are conditional,
+and no inference/retry occurs on navigation or query invalidation. Frontend mocks verify
+queue continuity while filters/selection change. Real-browser acceptance remains pending.
+
+Google is the single sign-in identity and connected inbox. The anonymous landing navbar offers one Continue
+with Google control with a locally served Google logo. Active sessions visiting `/`
+redirect automatically to `/dashboard`; the fictional inbox preview remains without demo call-to-action links. Successful
+OAuth also redirects directly to `/dashboard`. Anonymous private-page visits return to `/`. Account selection is requested on sign-in; explicit reconnection also
+requests consent. `POST /api/auth/logout` checks session/CSRF, clears the browser session,
+and leaves Gmail credentials/data intact. Remove Gmail access in Settings uses the
+existing disconnect/revocation operation, ends the session, and reports revocation
+warnings on the homepage. To change Gmail accounts, log out and choose another Google
+account; cross-account connection while signed in remains blocked.
+
+App navigation now groups branding, navigation links, and account identity, with a
+mobile hamburger disclosure. The optional Google `userinfo.profile` scope supplies a
+name/photo during OAuth; the Gmail identity still comes from authenticated Gmail
+`users.getProfile`. The backend requests Google OAuth2 userinfo with a bearer header
+and bounded timeout, permits only HTTPS Google image hosts, and treats cosmetic profile
+failures as a fallback. `display_name`/`picture_url` are returned by auth status from
+non-token profile data in the signed session; no schema change is needed. Existing
+sessions show initials until their next sign-in. A scope-change response is accepted
+only as the token-exchange result, then required Gmail scope is enforced normally;
+there is no global scope relaxation or duplicate authorization-code exchange.
+
+`GET /api/emails/overview` returns identity, timezone, last successful sync and four
+global totals. Email listing adds `reply_needed`, `has_pending_action`, and `sort`
+(`received_desc`, `received_asc`, `priority_desc`) with stable tie-breaking. Pending
+actions use owned records in status `pending`; creation remains Phase 8. Migration
+`0003` adds nullable `gmail_connections.last_synced_at`, updated under the operation
+lease only after a failure-free, non-deferred sync. It is applied on Neon with no
+schema drift. Existing stored content is retained. Automated verification passed;
+real-browser visual/focus and live sign-in/logout acceptance remain pending after
+Windows computer-use could not confidently determine Chrome's URL.
+
+Reply prompt `email-analysis-v5` uses a provider-only `ReplyDraft` schema with separate
+`greeting`, `body`, and `closing` fields. Shared analysis fields keep core validation
+consistent between provider responses and stored results. The AI service validates the
+reply sections and joins them with blank lines into the existing plain-text `draft_reply`.
+No public API/database migration is needed. If validation errors concern only the optional
+reply, the service validates the remaining analysis again with a null draft and saves it;
+core errors retain bounded retries. Unexpected drafts for no-reply emails are omitted.
+Logs contain only a fixed omission reason, never email/provider text. The reader explains
+when a needed reply is unavailable. Sender names must be explicit. The draft automatically
+adds a positive, contextual next-step intention for ordinary requests, with deadlines as
+targets and missing-material conditions. Scheduling/payment/contract replies propose
+coordination/review without inventing availability or authorizing commitments. No selector,
+new output field or auto-send behavior is introduced. Summaries/extractions stay factual;
+completed work and signature invention remain forbidden. One live synthetic work-request case passed on the free ERNIE
+model; broader live quality review remains pending.
+
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
 for detailed progress and `README.md` for current commands and configuration.
@@ -697,7 +763,7 @@ The initial response follows this structure:
   "requested_action": "Submit the progress report.",
   "suggested_action": "Prepare and review the report.",
   "reply_needed": true,
-  "draft_reply": "Hi, I'll review the request and follow up shortly."
+  "draft_reply": "Hello,\n\nThank you for outlining the request. Are there particular areas you would like the feedback to focus on?\n\nBest regards,"
 }
 ```
 
@@ -1221,5 +1287,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Complete Phase 6 manual review, then plan the Phase 7 dashboard;
+**Next Step:** Complete Phase 6/7 browser acceptance, then implement Phase 8 action tracking;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.
