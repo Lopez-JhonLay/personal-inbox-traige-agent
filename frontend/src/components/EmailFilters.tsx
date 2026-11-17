@@ -91,27 +91,27 @@ export function EmailFilters({
             <option value="received_asc">Oldest first</option>
           </select>
         </label>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 accent-ink"
-            checked={value.reply_needed === true}
-            onChange={(e) =>
-              onChange('reply_needed', e.target.checked ? 'true' : '')
-            }
-          />
-          Needs reply
+        <label className="grid min-w-0 gap-1 text-xs text-muted">
+          Reply
+          <select
+            className={selectClass}
+            value={value.reply_needed === true ? 'true' : ''}
+            onChange={(e) => onChange('reply_needed', e.target.value)}
+          >
+            <option value="">All emails</option>
+            <option value="true">Needs reply</option>
+          </select>
         </label>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 accent-ink"
-            checked={value.has_pending_action === true}
-            onChange={(e) =>
-              onChange('has_pending_action', e.target.checked ? 'true' : '')
-            }
-          />
-          Has pending actions
+        <label className="grid min-w-0 gap-1 text-xs text-muted">
+          Actions
+          <select
+            className={selectClass}
+            value={value.has_pending_action === true ? 'true' : ''}
+            onChange={(e) => onChange('has_pending_action', e.target.value)}
+          >
+            <option value="">All emails</option>
+            <option value="true">Has pending actions</option>
+          </select>
         </label>
         <button
           type="button"

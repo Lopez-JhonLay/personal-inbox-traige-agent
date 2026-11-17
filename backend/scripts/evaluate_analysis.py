@@ -1,4 +1,4 @@
-"""Opt-in synthetic evaluation. Each run makes at most ten inference requests."""
+"""Explicitly opt-in synthetic evaluation, with one request per selected case."""
 
 import argparse
 import json
@@ -12,10 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.config import Settings  # noqa: E402
 from app.schemas.analysis_schema import EmailInput  # noqa: E402
 from app.services.ai_service import AnalysisError, analyze_email  # noqa: E402
+from app.services.analysis_prompt import PROMPT_VERSION  # noqa: E402
 
 CASES_PATH = Path(__file__).resolve().parents[1] / "tests/fixtures/analysis_emails.json"
 EVALUATION_TIME = datetime(2026, 11, 16, 4, 0, tzinfo=UTC)
-EVALUATION_MODELS = ("openrouter/free", "baidu/ernie-5.5-flash-preview:free")
+EVALUATION_MODELS = ("baidu/ernie-5.5-flash-preview:free",)
 
 
 def evaluate(settings: Settings, max_requests: int, case_ids: list[str] | None = None) -> dict:
@@ -31,12 +32,10 @@ def evaluate(settings: Settings, max_requests: int, case_ids: list[str] | None =
         if unknown:
             raise ValueError("Unknown evaluation case IDs.")
         cases = [case for case in cases if case["id"] in case_ids]
-    pending = list(cases)
     results = {}
     history = []
     attempts = 0
-    while pending and attempts < max_requests:
-        case = pending.pop(0)
+    for case in cases[:max_requests]:
         if attempts:
             time.sleep(4)  # Below the documented 20 requests/minute free-model ceiling.
         attempts += 1
@@ -66,8 +65,6 @@ def evaluate(settings: Settings, max_requests: int, case_ids: list[str] | None =
                 "manual_review": case["review"],
             }
             history.append({"case": case["id"], **results[case["id"]]})
-            if mismatches:
-                pending.append(case)
         except AnalysisError as error:
             results[case["id"]] = {
                 "error": error.code,
@@ -75,15 +72,43 @@ def evaluate(settings: Settings, max_requests: int, case_ids: list[str] | None =
                 "retry_after": error.retry_after,
             }
             history.append({"case": case["id"], **results[case["id"]]})
-            if error.code in {"AI_RATE_LIMITED", "AI_NOT_CONFIGURED", "AI_UNAVAILABLE"}:
+            if error.code in {
+                "AI_RATE_LIMITED",
+                "AI_NOT_CONFIGURED",
+                "AI_UNAVAILABLE",
+                "AI_TIMEOUT",
+            }:
                 break  # Do not spend the evaluation budget probing capacity/auth problems.
-            pending.append(case)
     passed = sum("result" in result and not result["mismatches"] for result in results.values())
+    valid = sum("result" in result for result in results.values())
+    metrics = {
+        "valid_output": {"passed": valid, "attempted": attempts},
+    }
+    for field in ("category", "priority", "deadline", "reply_needed"):
+        scored = [
+            results[case["id"]]
+            for case in cases
+            if field in case["expected"]
+            and case["id"] in results
+            and "result" in results[case["id"]]
+        ]
+        metrics[field] = {
+            "passed": sum(field not in result["mismatches"] for result in scored),
+            "attempted": len(scored),
+        }
     return {
         "requested_model": settings.openrouter_model,
+        "prompt_version": PROMPT_VERSION,
+        "run_at": datetime.now(UTC).isoformat(),
         "requests_attempted": attempts,
         "cases_passed": passed,
         "cases_total": len(cases),
+        "complete": attempts == len(cases),
+        "unattempted_cases": [case["id"] for case in cases if case["id"] not in results],
+        "provider_errors": {
+            case_id: result["error"] for case_id, result in results.items() if "error" in result
+        },
+        "metrics": metrics,
         "evaluation_time": EVALUATION_TIME.isoformat(),
         "manual_review_required": True,
         "results": results,
@@ -93,10 +118,13 @@ def evaluate(settings: Settings, max_requests: int, case_ids: list[str] | None =
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--max-requests", type=int, choices=range(1, 11), default=10)
+    parser.add_argument("--live", action="store_true", help="Allow synthetic OpenRouter requests")
+    parser.add_argument("--max-requests", type=int, choices=range(1, 11), default=8)
     parser.add_argument("--model", choices=EVALUATION_MODELS)
     parser.add_argument("--case", action="append", dest="case_ids", help="Run only named case(s).")
     args = parser.parse_args()
+    if not args.live:
+        parser.error("Pass --live to explicitly enable synthetic network requests.")
     try:
         settings = Settings()
         if args.model:

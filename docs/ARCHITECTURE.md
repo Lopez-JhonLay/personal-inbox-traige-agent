@@ -1343,5 +1343,6 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Complete Phase 8 browser acceptance, then continue Phase 9;
-see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.
+**Next Step:** Complete outstanding browser acceptance and provider/privacy release checks;
+see the [Phase 9 security review](SECURITY_REVIEW.md) for validation evidence and limitations,
+and the [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for analysis behavior.

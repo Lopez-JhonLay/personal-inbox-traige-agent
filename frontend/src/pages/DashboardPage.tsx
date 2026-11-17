@@ -172,13 +172,6 @@ function Dashboard({ userId }: { userId: string }) {
         </p>
       )}
       <div className={selected ? 'hidden lg:block' : ''}>
-        {overview.data && (
-          <p className="mb-3 text-sm">
-            <Link className="underline" to="/actions">
-              Pending actions: {overview.data.pending_action_count}
-            </Link>
-          </p>
-        )}
         <EmailFilters
           value={filters}
           onChange={change}

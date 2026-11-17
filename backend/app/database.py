@@ -20,5 +20,5 @@ class Database:
 
 def create_database(url: str) -> Database:
     # Engine construction is lazy: startup does not open a database connection.
-    engine = create_engine(postgres_url(url), pool_pre_ping=True)
+    engine = create_engine(postgres_url(url), pool_pre_ping=True, hide_parameters=True)
     return Database(engine=engine, session_factory=sessionmaker(bind=engine))

@@ -68,7 +68,7 @@ def settings() -> Settings:
     return Settings(
         _env_file=None,
         openrouter_api_key="test-key",
-        openrouter_model="openrouter/free",
+        openrouter_model="baidu/ernie-5.5-flash-preview:free",
         database_url=None,
         enable_dev_analysis=True,
     )
@@ -221,7 +221,7 @@ def test_service_sends_schema_and_records_actual_model(settings: Settings, trans
     assert result["model"] == "test/actual-free-model"
     assert result["usage"]["total_tokens"] == 180
     sent = json.loads(transport.call_args.args[0].content)
-    assert sent["model"] == "openrouter/free"
+    assert sent["model"] == settings.openrouter_model
     assert sent["provider"] == {"require_parameters": True}
     schema = sent["response_format"]["json_schema"]
     assert schema["strict"] is True
@@ -470,6 +470,24 @@ def test_logs_exclude_email_and_draft(settings: Settings, transport: Mock, caplo
     assert ANALYSIS["draft_reply"] not in caplog.text
 
 
+@pytest.mark.parametrize("stage", ["analysis", "task"])
+def test_provider_failure_logs_exclude_sensitive_response(
+    settings: Settings, transport: Mock, caplog, stage: str
+) -> None:
+    marker = "synthetic-private-token-and-email"
+    transport.return_value = httpx.Response(500, json={"error": {"message": marker}})
+    with caplog.at_level("INFO", logger="app.services.ai_service"):
+        with pytest.raises(AnalysisError) as caught:
+            if stage == "task":
+                task_decision(settings)
+            else:
+                analyze_email(EmailInput.model_validate_json(json.dumps(EMAIL)), settings)
+    assert caught.value.code == "AI_UNAVAILABLE"
+    assert marker not in caplog.text
+    assert EMAIL["body"] not in caplog.text
+    assert ANALYSIS["draft_reply"] not in caplog.text
+
+
 def test_malformed_provider_envelope(settings: Settings, transport: Mock) -> None:
     transport.return_value = httpx.Response(200, json={"choices": None})
     with pytest.raises(AnalysisError) as caught:
@@ -507,8 +525,10 @@ def test_evaluation_budget_and_fixtures(
     monkeypatch.setattr(evaluation, "analyze_email", calls)
     monkeypatch.setattr(evaluation.time, "sleep", lambda _: None)
     report = evaluation.evaluate(settings, 10)
-    assert report["requests_attempted"] == calls.call_count == 10
-    assert len(report["attempt_history"]) == 10
+    assert report["requests_attempted"] == calls.call_count == 8
+    assert len(report["attempt_history"]) == 8
+    assert report["complete"]
+    assert report["metrics"]["valid_output"] == {"passed": 0, "attempted": 8}
     assert report["cases_passed"] == 0
     assert len({item["case"] for item in report["attempt_history"][:8]}) == 8
     for call in calls.call_args_list:
@@ -525,6 +545,9 @@ def test_evaluation_stops_on_rate_limit(
     monkeypatch.setattr(evaluation, "analyze_email", calls)
     report = evaluation.evaluate(settings, 10)
     assert report["requests_attempted"] == calls.call_count == 1
+    assert not report["complete"]
+    assert len(report["unattempted_cases"]) == 7
+    assert report["provider_errors"] == {"work-request": "AI_RATE_LIMITED"}
 
 
 def test_evaluation_rejects_paid_model(settings: Settings) -> None:
@@ -730,6 +753,10 @@ def test_task_evaluation_respects_budget_and_stops_on_rate_limit(monkeypatch) ->
     assert report["requests_attempted"] == 2
     assert report["cases_passed"] == 1
     assert report["results"][1]["error_code"] == "AI_RATE_LIMITED"
+    assert not report["complete"]
+    assert len(report["unattempted_cases"]) == 6
+    assert report["metrics"]["task_decision"] == {"passed": 1, "attempted": 1}
+    assert report["metrics"]["valid_output"] == {"passed": 1, "attempted": 2}
     decide.reset_mock(side_effect=True)
     decide.return_value = True
     assert evaluation.evaluate(settings, 1)["requests_attempted"] == 1

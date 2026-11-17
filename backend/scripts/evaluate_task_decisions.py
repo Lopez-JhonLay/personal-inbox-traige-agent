@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -11,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.config import Settings  # noqa: E402
 from app.schemas.analysis_schema import EmailAnalysis, EmailInput  # noqa: E402
 from app.services.ai_service import AnalysisError, should_add_action  # noqa: E402
+from app.services.task_prompt import TASK_PROMPT_VERSION  # noqa: E402
 
 CASES_PATH = Path(__file__).resolve().parents[1] / "tests/fixtures/task_decisions.json"
 
@@ -20,6 +22,8 @@ def evaluate(settings: Settings, max_requests: int) -> dict:
         raise ValueError("Use a budget from one to eight requests.")
     if settings.openrouter_model != "baidu/ernie-5.5-flash-preview:free":
         raise ValueError("This evaluation is restricted to the configured free ERNIE model.")
+    if not settings.openrouter_api_key:
+        raise ValueError("Configure OPENROUTER_API_KEY locally before evaluation.")
     results = []
     cases = json.loads(CASES_PATH.read_text(encoding="utf-8"))
     for case in cases[:max_requests]:
@@ -66,9 +70,27 @@ def evaluate(settings: Settings, max_requests: int) -> dict:
             results.append({"case": case["id"], "error_code": error.code, "passed": False})
             break
     return {
+        "requested_model": settings.openrouter_model,
+        "prompt_version": TASK_PROMPT_VERSION,
+        "run_at": datetime.now(UTC).isoformat(),
         "requests_attempted": len(results),
         "cases_passed": sum(r["passed"] for r in results),
         "cases_total": len(cases),
+        "complete": len(results) == len(cases),
+        "unattempted_cases": [case["id"] for case in cases[len(results) :]],
+        "provider_errors": {
+            result["case"]: result["error_code"] for result in results if "error_code" in result
+        },
+        "metrics": {
+            "task_decision": {
+                "passed": sum(r["passed"] for r in results),
+                "attempted": sum("actual" in r for r in results),
+            },
+            "valid_output": {
+                "passed": sum("actual" in r for r in results),
+                "attempted": len(results),
+            },
+        },
         "results": results,
     }
 
@@ -80,7 +102,11 @@ def main() -> int:
     args = parser.parse_args()
     if not args.live:
         parser.error("Pass --live to explicitly enable synthetic network requests.")
-    report = evaluate(Settings(), args.max_requests)
+    try:
+        report = evaluate(Settings(), args.max_requests)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 1
     print(json.dumps(report, indent=2))
     return 0 if report["cases_passed"] == report["cases_total"] else 1
 

@@ -5,7 +5,7 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.17\
+**Version:** 1.18\
 **Status:** Phases 0-7 Complete; Phase 8 Implementation Ready - Browser Acceptance Pending\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
@@ -105,7 +105,6 @@ that those features or the full MVP are complete.
 
 # Phase 0 — Development Environment & Project Setup
 
-
 **Status:** Complete — Development Tools, Workspace Configuration, and Git Setup Verified
 
 ## Objective
@@ -181,7 +180,6 @@ Prepare the local development environment, initialize the project, and configure
 
 # Phase 1 — Flask Backend Foundation
 
-
 **Status:** Complete — Flask Foundation and Basic API Error Handling Verified
 
 ## Objective
@@ -255,7 +253,6 @@ Create a functional Flask REST API that will serve as the backend foundation.
 ---
 
 # Phase 2 — AI Integration & Email Analysis
-
 
 **Status:** Complete — Fixed Free Model Passed Synthetic Evaluation and Manual Review
 
@@ -361,7 +358,6 @@ See the [analysis and testing guide](#phase-2-analysis-and-testing-guide) for co
 evaluation findings. The user confirmed manual testing passed on November 16, 2026.
 
 ## Phase 2 Analysis and Testing Guide
-
 
 Run all commands below from the repository root.
 
@@ -542,15 +538,15 @@ Routine tests use mocked HTTP transports and never make inference requests. The
 installed SDK uses `httpx2`; tests use its existing mock transport without another
 HTTP dependency. `tzdata` is explicitly pinned for IANA timezone support on Windows.
 
-The opt-in evaluation sends synthetic fixtures and makes at most ten requests per run:
+The opt-in evaluation sends synthetic fixtures once each, with an eight-request default:
 
 ```powershell
 uv run --project backend python backend/scripts/evaluate_analysis.py `
-  --model baidu/ernie-5.5-flash-preview:free --max-requests 10
+  --live --model baidu/ernie-5.5-flash-preview:free --max-requests 8
 ```
 
 Eight cases cover work, billing, meetings, personal mail, newsletters, promotions,
-ambiguous dates, and prompt injection. Two extra requests can recheck failures. Every
+ambiguous dates, and prompt injection. Cases are never automatically requeued. Every
 attempt is counted; SDK/service retries are disabled inside this runner. It stops on
 rate limits or unavailable configuration/capacity. Re-running spends a new budget.
 The evaluation uses a fixed November 16, 2026 reference time for reproducible urgency.
@@ -560,7 +556,7 @@ history. A zero exit code means all expected fields matched, not that manual rev
 passed. Inspect summaries, amounts, dates, actions, drafts, and injection handling
 before marking Phase 2 complete. Keep generated reports in ignored `.cache/`.
 
-Only the fixed ERNIE model and `openrouter/free` are allowed by the runner; arbitrary
+Only the fixed free ERNIE model is allowed by the runner; arbitrary
 models, including paid models, are rejected. `--model` overrides the evaluation only,
 without editing `.env`. Checks include required non-null actions for actionable cases.
 To resume selected cases after a rate limit, use repeated `--case` flags and set
@@ -570,7 +566,7 @@ values, when supplied. Do not automatically retry 429 responses.
 
 ```powershell
 uv run --project backend python backend/scripts/evaluate_analysis.py `
-  --model baidu/ernie-5.5-flash-preview:free --max-requests 5 `
+  --live --model baidu/ernie-5.5-flash-preview:free --max-requests 5 `
   --case newsletter --case promotion --case ambiguous-date --case prompt-injection
 ```
 
@@ -580,11 +576,11 @@ uv run --project backend python backend/scripts/evaluate_analysis.py `
 used 20 requests and exposed quality failures. The subsequent fixed-model round used
 nine requests within its ten-request cap, bringing the total to 29 synthetic requests.
 
-| Batch | Configuration | Automated result | Manual review |
-| --- | --- | --- | --- |
-| Initial | Prompt v1, 2,000 output tokens | 6/8 expected-field matches after 10 attempts | Work and meeting drafts made unsupported commitments. Injection had no usable output. One deadline mismatch was harmless source phrasing: `by Friday` versus `Friday`. |
-| Revised | Prompt v2, 4,096 output tokens | 6/8 expected-field matches after 10 attempts | Draft commitments improved, but billing omitted the requested action and rewrote deadline wording; an ambiguous-date summary contained serialization artifacts. Promotion and injection still lacked usable output. |
-| Fixed ERNIE | Prompt v2, final stricter validation, 4,096 output tokens | 8/8 cases passed across nine attempts | All eight manually reviewed outputs passed: source dates/amounts/actions preserved, ambiguous Friday remained undated, drafts made no commitments, injection instructions were ignored. One request hit 429; a later run resumed only the four unfinished cases. |
+| Batch       | Configuration                                             | Automated result                             | Manual review                                                                                                                                                                                                                                                    |
+| ----------- | --------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Initial     | Prompt v1, 2,000 output tokens                            | 6/8 expected-field matches after 10 attempts | Work and meeting drafts made unsupported commitments. Injection had no usable output. One deadline mismatch was harmless source phrasing: `by Friday` versus `Friday`.                                                                                           |
+| Revised     | Prompt v2, 4,096 output tokens                            | 6/8 expected-field matches after 10 attempts | Draft commitments improved, but billing omitted the requested action and rewrote deadline wording; an ambiguous-date summary contained serialization artifacts. Promotion and injection still lacked usable output.                                              |
+| Fixed ERNIE | Prompt v2, final stricter validation, 4,096 output tokens | 8/8 cases passed across nine attempts        | All eight manually reviewed outputs passed: source dates/amounts/actions preserved, ambiguous Friday remained undated, drafts made no commitments, injection instructions were ignored. One request hit 429; a later run resumed only the four unfinished cases. |
 
 Observed models included `nvidia/nemotron-3.5-super-vl:free`,
 `baidu/ernie-5.5-flash-preview:free`, and `liquid/lfm-3-1.7b:free`.
@@ -616,7 +612,6 @@ verified; real-email privacy/provider review is required before Gmail content is
 ---
 
 # Phase 3 — Database Design & Persistence
-
 
 **Status:** Complete — Neon Migration and Repository Tests Verified
 
@@ -721,7 +716,6 @@ The development analysis endpoint remains stateless.
 ---
 
 # Phase 4 — Google OAuth & Gmail Integration
-
 
 **Status:** Complete — Live OAuth, Refresh, Read, Disconnect, and Reauthorization Verified
 
@@ -832,6 +826,7 @@ connecting does not synchronize or submit real email to OpenRouter.
 
    Authorized JavaScript origins may remain empty for this server-side OAuth flow.
    The frontend is on port 5173, but the registered callback is on port 5000.
+
 8. Create the client. Copy its client ID and secret into the existing entries in the
    ignored `backend/.env`, without sharing the values in chat or committing them:
 
@@ -879,6 +874,7 @@ npm --prefix frontend run dev
    This refreshes credentials and reads at most one message. It prints only success,
    message count, and body character count. No message content is stored or sent to AI.
    An empty inbox successfully reports zero messages.
+
 6. In Settings, choose **Remove Gmail access**, review the confirmation, and confirm. Check that the UI
    returns to its disconnected state and `encrypted_refresh_token` is NULL. Existing
    saved content remains. If Google revocation fails, remove Mailkind in your
@@ -917,7 +913,6 @@ the final computer-use check; dedicated keyboard review remains a frontend follo
 ---
 
 # Phase 5 — Email Synchronization & AI Pipeline
-
 
 **Status:** Complete — Synthetic Gmail-to-AI Pipeline and Repeat Sync Verified
 
@@ -1078,7 +1073,6 @@ production function time limits in Phase 10; Phase 5 uses bounded synchronous re
 
 # Phase 6 — React Frontend Foundation
 
-
 **Status:** Complete - Automated Checks Passed; Shared Browser Review Confirmed by User
 
 ## Objective
@@ -1237,7 +1231,6 @@ on November 17, 2026. This records user verification, not an automated browser r
 
 # Phase 7 — Dashboard & Email Management
 
-
 **Status:** Complete - Automated Checks Passed; Manual Acceptance Confirmed by User
 
 ## Objective
@@ -1271,7 +1264,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [x] Support total analyzed emails in the overview API; redundant count UI removed by request.
 - [x] Support high-priority count in the overview API; redundant count UI removed by request.
 - [x] Support reply-needed count in the overview API; redundant count UI removed by request.
-Pending-action count UI is deferred to Phase 8; overview API support remains.
+      Pending-action count UI is deferred to Phase 8; overview API support remains.
 - [x] Add Sync Inbox button.
 
 ### 7.3 Email List
@@ -1291,7 +1284,7 @@ Pending-action count UI is deferred to Phase 8; overview API support remains.
 - [x] Filter emails by priority.
 - [x] Filter emails by category.
 - [x] Filter emails requiring replies.
-Pending-action filtering UI is deferred to Phase 8; API support remains.
+      Pending-action filtering UI is deferred to Phase 8; API support remains.
 - [x] Add sorting options.
 - [x] Keep filters synchronized with API queries.
 
@@ -1419,7 +1412,6 @@ automatic synchronization, and deployment remain later work.
 
 # Phase 8 — Action Tracking & Reply Drafts
 
-
 **Status:** Implementation Ready - Automated Checks Passed; Browser Acceptance Pending
 
 ## Objective
@@ -1448,7 +1440,7 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 
 ### 8.2 Action Tracker Frontend
 
-- [x] Display pending-action count (deferred from Phase 7).
+- [x] Pending-action count implemented, then removed from the inbox at user request.
 - [x] Filter emails with pending actions (deferred from Phase 7).
 
 - [x] Create Action Tracker page.
@@ -1644,8 +1636,7 @@ uv run --project backend python backend/scripts/evaluate_task_decisions.py --liv
 
 # Phase 9 — Testing, AI Evaluation & Security
 
-
-**Status:** In Progress — Setup Checks Only; Feature Tests and Security Review Pending
+**Status:** Automated and Synthetic Live Checks Passed; Browser Acceptance and Provider Privacy Verification Pending
 
 ## Objective
 
@@ -1665,60 +1656,60 @@ Validate the application's functionality, AI accuracy, reliability, and security
 
 - [x] Test health endpoint.
 - [x] Test configured CORS origins and local construction of database, OpenRouter, and Google clients.
-- [ ] Test API request validation.
-- [ ] Test Gmail normalization.
-- [ ] Test OAuth callback handling.
-- [ ] Test authentication requirements.
-- [ ] Test ownership authorization.
-- [ ] Test database operations.
-- [ ] Test duplicate prevention.
-- [ ] Test AI response validation.
+- [x] Test API request validation.
+- [x] Test Gmail normalization.
+- [x] Test OAuth callback handling.
+- [x] Test authentication requirements.
+- [x] Test ownership authorization.
+- [x] Test database operations.
+- [x] Test duplicate prevention.
+- [x] Test AI response validation.
 - [x] Test basic API error handling (404, 405, malformed JSON, safe server errors, header preservation, and CORS).
-- [ ] Test feature-specific provider and persistence error handling.
+- [x] Test feature-specific provider and persistence error handling.
 
 ### 9.2 Frontend Testing
 
 - [x] Configure Vitest (brought forward into Phase 6).
 - [x] Install React Testing Library (brought forward into Phase 6).
-- [ ] Test email list rendering.
-- [ ] Test priority and category display.
-- [ ] Test loading and empty states.
-- [ ] Test filtering interactions.
-- [ ] Test action status changes.
-- [ ] Test API error handling.
+- [x] Test email list rendering.
+- [x] Test priority and category display.
+- [x] Test loading and empty states.
+- [x] Test filtering interactions.
+- [x] Test action status changes.
+- [x] Test API error handling.
 
 ### 9.3 AI Evaluation
 
-- [ ] Create synthetic evaluation emails.
-- [ ] Include urgent work requests.
-- [ ] Include finance reminders.
-- [ ] Include meeting invitations.
-- [ ] Include newsletters and promotions.
-- [ ] Include emails without actions.
-- [ ] Include ambiguous deadlines.
-- [ ] Include prompt injection examples.
-- [ ] Define expected classifications.
-- [ ] Measure category accuracy.
-- [ ] Measure priority accuracy.
-- [ ] Measure deadline extraction accuracy.
-- [ ] Measure reply-needed accuracy.
-- [ ] Measure structured-output success rate.
-- [ ] Review hallucinations and unsupported claims.
-- [ ] Refine prompts based on evaluation results.
+- [x] Create synthetic evaluation emails.
+- [x] Include urgent work requests.
+- [x] Include finance reminders.
+- [x] Include meeting invitations.
+- [x] Include newsletters and promotions.
+- [x] Include emails without actions.
+- [x] Include ambiguous deadlines.
+- [x] Include prompt injection examples.
+- [x] Define expected classifications.
+- [x] Measure category accuracy.
+- [x] Measure priority accuracy.
+- [x] Measure deadline extraction accuracy.
+- [x] Measure reply-needed accuracy.
+- [x] Measure structured-output success rate.
+- [x] Review hallucinations and unsupported claims.
+- [x] Review prompt refinement against results; retain existing versions because no change was justified.
 
 ### 9.4 Security Review
 
-- [ ] Verify API keys are backend-only.
-- [ ] Verify OAuth tokens are encrypted.
-- [ ] Verify session cookie security.
-- [ ] Verify CSRF protection.
+- [x] Verify API keys are backend-only.
+- [x] Verify OAuth tokens are encrypted.
+- [x] Verify session cookie security.
+- [x] Verify CSRF protection.
 - [x] Verify local CORS allows the configured frontend origin and denies an untrusted origin.
-- [ ] Verify user ownership checks.
-- [ ] Check logs for sensitive information.
-- [ ] Verify emails cannot execute prompt instructions.
-- [ ] Verify external write actions are unavailable.
-- [ ] Define stored email retention and deletion behavior.
-- [ ] Review Google OAuth and AI provider policies.
+- [x] Verify user ownership checks.
+- [x] Check logs for sensitive information.
+- [x] Test untrusted-input prompts, constrained tool execution, and synthetic injection cases (not a guarantee against all injection).
+- [x] Verify external write actions are unavailable.
+- [x] Define stored email retention and deletion behavior.
+- [x] Review Google OAuth and AI provider policies.
 
 ### 9.5 Code Quality
 
@@ -1726,26 +1717,65 @@ Validate the application's functionality, AI accuracy, reliability, and security
 - [x] Run Prettier checks.
 - [x] Run TypeScript type checks and Vite production build.
 - [x] Run Ruff checks.
-- [x] Run backend setup tests (five passed; feature tests remain pending).
-- [x] Run frontend foundation tests (37 passed; dashboard/action feature tests remain future work).
-- [ ] Fix relevant errors and warnings.
+- [x] Run backend offline tests (248 passed; 24 opt-in database tests are separate).
+- [x] Run frontend feature tests (104 passed across 13 files).
+- [x] Fix relevant code/check failures; unresolved release requirements are recorded below.
 - [x] Update documentation to reflect the current scaffold and Git setup (MVP documentation remains ongoing).
 
 ## Phase Completion Checklist
 
-- [ ] Core functionality is tested.
-- [ ] AI output quality has been evaluated.
-- [ ] Authentication and authorization checks pass.
+- [x] Core functionality is covered by mocked frontend/backend tests; browser acceptance remains separate.
+- [x] AI output quality has been evaluated with bounded synthetic cases and manual output review.
+- [x] Mocked authentication and authorization checks pass; database checks are recorded below.
 - [ ] Sensitive information is protected.
 - [ ] No unauthorized Gmail operations are possible.
 - [ ] Critical issues are resolved.
 
 **Deliverable:** Tested and security-reviewed MVP.
 
+### Phase 9 verification record - November 17, 2026
+
+See [the security review](SECURITY_REVIEW.md) for the coverage map, retention/deletion
+behavior, official policy sources, findings, and manual acceptance checklist.
+
+- Backend: 248 offline tests pass; routine tests mock external services.
+- Frontend: 104 tests pass; Biome, Prettier, TypeScript and production build pass.
+- Ruff lint/format pass for application, tests, scripts, and migrations. Inaccessible
+  generated pytest-cache directories are excluded from the targeted Ruff invocation.
+- Analysis evaluation: eight requests, eight valid outputs, and 8/8 for category,
+  priority, deadline, and reply-needed. Manual source/output review found no unsupported
+  factual claims, invented dates, completed-work claims, or followed injection.
+- Reports separate first-pass scores, provider errors, and unattempted cases. No
+  automatic case retries; no new dependency, public API, or database migration.
+- Prompt `email-analysis-v5` is unchanged because the run did not justify refinement.
+- Task evaluation: eight decisions passed in eight requests; valid tools/no-call
+  results matched all cases, including injection and already-resolved work. Combined
+  live AI usage was exactly 16 synthetic requests without retries or provider errors.
+- Live database: all 24 opt-in Neon tests passed in 484.56 seconds, using rollback-only
+  transactions and mocked Gmail/AI providers. Combined backend result: 272 tests pass
+  across offline and database runs.
+- Provider-account privacy, upstream retention/training terms, applicable public
+  disclosures/OAuth verification, and real-browser acceptance remain unresolved.
+  Phase 9 is not marked fully complete and deployment is not approved.
+
+Reproduce only with a new explicitly authorized live budget:
+
+```powershell
+uv run --project backend pytest backend/tests
+uv run --project backend pytest backend/tests --run-db-tests -m database
+npm --prefix frontend run test
+uv run --project backend python backend/scripts/evaluate_analysis.py --live --max-requests 8
+uv run --project backend python backend/scripts/evaluate_task_decisions.py --live --max-requests 8
+```
+
+Database tests use rollback-only synthetic records; Gmail/OpenRouter calls in them
+remain mocked. The two evaluation commands spend up to 16 synthetic requests combined.
+Stop on capacity errors and do not automatically rerun. Keep JSON reports in ignored
+`.cache/`; record only synthetic findings in documentation.
+
 ---
 
 # Phase 10 — Deployment & Final Validation
-
 
 **Status:** Not Started
 
@@ -2011,6 +2041,6 @@ rules remain in the shared references; phase-specific verification is recorded b
 
 ---
 
-**Document Version:** 1.17\
+**Document Version:** 1.18\
 **Status:** Active Development Tracker  
 **Last Updated:** November 17, 2026

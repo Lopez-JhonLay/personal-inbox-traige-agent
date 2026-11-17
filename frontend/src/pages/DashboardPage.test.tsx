@@ -91,9 +91,7 @@ it('preserves the pending action filter across other filters and pagination, the
   const user = userEvent.setup()
   dashboard('/dashboard?has_pending_action=true&sort=received_asc')
   await screen.findByText('Review proposal')
-  expect(
-    screen.getByRole('checkbox', { name: 'Has pending actions' }),
-  ).toBeChecked()
+  expect(screen.getByRole('combobox', { name: 'Actions' })).toHaveValue('true')
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Category' }),
     'Work',
@@ -116,9 +114,7 @@ it('preserves the pending action filter across other filters and pagination, the
   expect(screen.getByLabelText('Current URL')).toHaveTextContent(
     '/dashboard?sort=received_asc',
   )
-  expect(
-    screen.getByRole('checkbox', { name: 'Has pending actions' }),
-  ).not.toBeChecked()
+  expect(screen.getByRole('combobox', { name: 'Actions' })).toHaveValue('')
 })
 
 function Location() {
@@ -177,7 +173,10 @@ it('synchronizes filters with the URL and resets the page before querying', asyn
   const user = userEvent.setup()
   dashboard('/dashboard?offset=20&sort=received_asc')
   await screen.findByText('Review proposal')
-  await user.click(screen.getByRole('checkbox', { name: 'Needs reply' }))
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Reply' }),
+    'true',
+  )
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Priority' }),
     'High',
@@ -239,7 +238,10 @@ it('opens text-only details, preserves date-only deadlines, and returns to the l
   await user.click(within(detail).getByText('Original email'))
   expect(await within(detail).findByText(email.body ?? '')).toBeVisible()
   expect(detail.querySelector('img')).toBeNull()
-  expect(within(detail).getByText('2026-11-19')).toBeInTheDocument()
+  expect(within(detail).getByText('Nov 19, 2026')).toHaveAttribute(
+    'datetime',
+    '2026-11-19',
+  )
   await user.click(within(detail).getByText('Suggested reply'))
   expect(within(detail).getByText('Thanks for sharing.')).toBeVisible()
   await user.click(
@@ -536,12 +538,7 @@ it('resets page and selection on filter changes and clears filters while preserv
   expect(screen.getByLabelText('Current URL')).toHaveTextContent(
     '/dashboard?sort=received_asc',
   )
-  expect(
-    screen.getByRole('link', { name: 'Pending actions: 0' }),
-  ).toHaveAttribute('href', '/actions')
-  expect(
-    screen.getByRole('checkbox', { name: 'Has pending actions' }),
-  ).not.toBeChecked()
+  expect(screen.getByRole('combobox', { name: 'Actions' })).toHaveValue('')
   expect(analyzeStoredEmail).not.toHaveBeenCalled()
 })
 
@@ -550,8 +547,8 @@ it('keeps each filter in one toolbar with one clear control and no duplicate vie
   dashboard('/dashboard?category=Work&analysis_status=failed')
   await screen.findByText('Review proposal')
   const filters = screen.getByRole('region', { name: 'Filter emails' })
-  expect(within(filters).getAllByRole('combobox')).toHaveLength(4)
-  expect(within(filters).getAllByRole('checkbox')).toHaveLength(2)
+  expect(within(filters).getAllByRole('combobox')).toHaveLength(6)
+  expect(within(filters).queryAllByRole('checkbox')).toHaveLength(0)
   expect(
     within(filters).getByRole('combobox', { name: 'Category' }),
   ).toHaveValue('Work')
@@ -629,10 +626,12 @@ it('keeps the queue alive while filtering and reading, with real progress and di
   await user.click(
     within(modal).getByRole('button', { name: 'Sync and analyze' }),
   )
-  await screen.findByText('Analyzing 1 of 2')
   expect(
-    screen.getByRole('progressbar', { name: 'Analysis progress' }),
-  ).toHaveAttribute('value', '0')
+    await screen.findByRole('button', { name: 'Analyzing 1 of 2' }),
+  ).toBeDisabled()
+  expect(
+    screen.queryByRole('region', { name: 'Processing progress' }),
+  ).not.toBeInTheDocument()
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Priority' }),
     'High',

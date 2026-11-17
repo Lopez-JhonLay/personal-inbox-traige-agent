@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { ArrowLeft, RotateCcw } from 'lucide-react'
+import { ArrowLeft, CalendarDays, RotateCcw } from 'lucide-react'
 import {
   useEmailAnalyzing,
   useEmailDetail,
   useEmailMutations,
 } from '../hooks/useEmails'
-import { formatTimestamp } from '../utils/dates'
+import { formatDate, formatTimestamp } from '../utils/dates'
 import { analysisLabels } from '../utils/emailStatus'
 import { SuggestedReply } from './SuggestedReply'
 import { AddAction } from './AddAction'
@@ -46,7 +46,7 @@ export function EmailDetail({
       className="flex min-h-[28rem] min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface lg:min-h-0"
       aria-labelledby="email-detail-title"
     >
-      <header className="shrink-0 border-b border-line bg-surface p-5 sm:p-6">
+      <header className="shrink-0 border-b border-line bg-surface px-4 py-3 sm:px-5">
         <button
           type="button"
           onClick={onClose}
@@ -71,7 +71,7 @@ export function EmailDetail({
             <p className="mt-1 text-xs text-muted">
               {formatTimestamp(email.received_at, timezone)}
             </p>
-            <div className="cluster mt-4 gap-2">
+            <div className="cluster mt-3 gap-2">
               {analysis?.priority && (
                 <Badge
                   tone={analysis.priority === 'High' ? 'warning' : 'neutral'}
@@ -99,7 +99,7 @@ export function EmailDetail({
         )}
       </header>
       <div
-        className={`theme-scrollbar min-h-0 flex-1 p-5 sm:p-6 lg:overflow-y-auto ${query.isPending ? 'flex flex-col' : ''}`}
+        className={`theme-scrollbar min-h-0 flex-1 p-4 sm:p-5 lg:overflow-y-auto ${query.isPending ? 'flex flex-col' : ''}`}
       >
         {query.isPending && (
           <LoadingIndicator label="Loading email..." centered />
@@ -131,30 +131,44 @@ export function EmailDetail({
               {analysis?.summary ||
                 'No analysis yet. Continue analysis from the inbox, or analyze this email below.'}
             </p>
-            {analysis?.deadline && (
-              <div className="mt-5 rounded-control border border-line bg-highlight p-4">
-                <h3 className="text-sm font-semibold">Deadline</h3>
-                <p className="mt-1 text-sm">{analysis.deadline}</p>
-                {analysis.deadline_text && (
-                  <p className="mt-1 break-words text-xs text-muted">
-                    {analysis.deadline_text}
-                  </p>
-                )}
+            {(analysis?.deadline || analysis?.deadline_text) && (
+              <div className="mt-3 flex min-w-0 items-start gap-2 rounded-control bg-paper px-3 py-2 text-sm">
+                <CalendarDays
+                  className="mt-0.5 size-4 shrink-0 text-muted"
+                  aria-hidden="true"
+                />
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-muted">Deadline</span>
+                  {analysis.deadline ? (
+                    <>
+                      <time
+                        dateTime={analysis.deadline}
+                        className="font-semibold"
+                      >
+                        {formatDate(analysis.deadline)}
+                      </time>
+                      {analysis.deadline_text && (
+                        <span className="break-words text-xs text-muted">
+                          {analysis.deadline_text}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="min-w-0 break-words">
+                      {analysis.deadline_text}
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
-            {!analysis?.deadline && analysis?.deadline_text && (
-              <p className="mt-4 text-sm">
-                Deadline mentioned: {analysis.deadline_text}
-              </p>
             )}
             {(analysis?.requested_action || analysis?.suggested_action) && (
               <section
                 aria-label="Next steps"
-                className="mt-5 space-y-4 border-t border-line pt-5"
+                className="mt-4 space-y-3 border-t border-line pt-4"
               >
                 {analysis.requested_action && (
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="text-xs font-semibold text-muted">
                       Requested by the sender
                     </h3>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
@@ -164,7 +178,7 @@ export function EmailDetail({
                 )}
                 {analysis.suggested_action && (
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="text-xs font-semibold text-muted">
                       Suggested next step
                     </h3>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">
@@ -174,17 +188,35 @@ export function EmailDetail({
                 )}
               </section>
             )}
-            <p className="mt-5 text-xs text-muted">
+            <div className="flex flex-wrap items-end gap-2">
+              <AddAction
+                userId={userId}
+                emailId={id}
+                description={
+                  analysis?.suggested_action || analysis?.requested_action || ''
+                }
+                dueDate={analysis?.deadline}
+              />
+              <Button
+                variant="secondary"
+                className="mt-4 text-sm"
+                busy={busy}
+                disabled={disabled || busy}
+                onClick={() => {
+                  mutation.reset()
+                  dialog.current?.showModal()
+                }}
+              >
+                <RotateCcw
+                  className={`size-3.5 ${busy ? 'motion-safe:animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                {busy ? 'Analyzing…' : actionLabel}
+              </Button>
+            </div>
+            <p className="mt-3 text-xs text-muted">
               AI suggestions. Check the original email before acting.
             </p>
-            <AddAction
-              userId={userId}
-              emailId={id}
-              description={
-                analysis?.suggested_action || analysis?.requested_action || ''
-              }
-              dueDate={analysis?.deadline}
-            />
             <details className="mt-5 rounded-control border border-line">
               <summary className="min-h-11 cursor-pointer px-4 py-3 text-sm font-semibold">
                 Original email
@@ -205,22 +237,6 @@ export function EmailDetail({
                 can try analyzing this email again to request a reply.
               </p>
             )}
-            <Button
-              variant="secondary"
-              className="mt-5 text-xs"
-              busy={busy}
-              disabled={disabled || busy}
-              onClick={() => {
-                mutation.reset()
-                dialog.current?.showModal()
-              }}
-            >
-              <RotateCcw
-                className={`size-3.5 ${busy ? 'motion-safe:animate-spin' : ''}`}
-                aria-hidden="true"
-              />
-              {busy ? 'Analyzing…' : actionLabel}
-            </Button>
           </>
         )}
       </div>

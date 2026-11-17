@@ -47,24 +47,17 @@ export function InboxProcessing({
     dialog.current?.close()
     void processing.run(action)
   }
-  const status =
-    progress.phase === 'syncing'
-      ? 'Syncing inbox...'
-      : progress.phase === 'preparing'
-        ? 'Preparing emails...'
-        : progress.phase === 'analyzing'
-          ? `Analyzing ${progress.current} of ${progress.total}`
-          : progress.phase === 'paused'
-            ? 'Processing paused. Completed results are saved.'
-            : progress.phase === 'failed'
-              ? 'Could not finish processing. Saved emails are unchanged.'
-              : progress.phase === 'finished'
-                ? `${progress.completed} analyzed, ${progress.failed} analysis failures in this run.`
-                : ''
+  const buttonLabel = !busy
+    ? 'Sync inbox'
+    : progress.phase === 'analyzing'
+      ? `Analyzing ${progress.current} of ${progress.total}`
+      : progress.phase === 'syncing'
+        ? 'Syncing...'
+        : 'Preparing...'
   return (
     <section aria-label="Inbox controls" className="mb-5">
       <div
-        className={`${reading ? 'hidden lg:flex' : 'flex'} flex-wrap items-center justify-between gap-4`}
+        className={`${reading && !busy ? 'hidden lg:flex' : 'flex'} flex-wrap items-center justify-between gap-4`}
       >
         <div>
           <h1 className="text-heading">Inbox</h1>
@@ -75,12 +68,12 @@ export function InboxProcessing({
               : 'No successful sync recorded'}
           </p>
         </div>
-        <Button disabled={busy || disabled} onClick={() => confirm('sync')}>
+        <Button busy={busy} disabled={disabled} onClick={() => confirm('sync')}>
           <RefreshCw
             className={`size-4 ${busy ? 'motion-safe:animate-spin' : ''}`}
             aria-hidden="true"
           />
-          Sync inbox
+          {buttonLabel}
         </Button>
       </div>
       {children && (
@@ -135,44 +128,6 @@ export function InboxProcessing({
           />
         )}
       </div>
-      {(busy || progress.phase === 'paused') && (
-        <section
-          aria-label="Processing progress"
-          aria-busy={busy}
-          className="mt-4 rounded-control border border-line bg-accent-soft px-4 py-3 text-sm"
-        >
-          <p role="status" aria-live="polite">
-            {status}
-          </p>
-          {busy && progress.phase !== 'analyzing' && (
-            <LoadingIndicator label="Working..." />
-          )}
-          {progress.total > 0 && (
-            <progress
-              aria-label="Analysis progress"
-              max={progress.total}
-              value={progress.completed + progress.failed}
-              className="mt-2 h-2 w-full accent-ink"
-            />
-          )}
-          {(progress.imported > 0 ||
-            progress.existing > 0 ||
-            progress.importFailed > 0 ||
-            progress.deferred > 0) && (
-            <p className="mt-2 text-xs text-muted">
-              {progress.imported} imported, {progress.existing} already saved,{' '}
-              {progress.importFailed} import failures, {progress.deferred}{' '}
-              deferred.
-            </p>
-          )}
-          {busy && (
-            <p className="mt-2 text-xs text-muted">
-              Leaving this page pauses remaining analyses. Completed results
-              stay saved.
-            </p>
-          )}
-        </section>
-      )}
       <dialog
         ref={dialog}
         aria-labelledby="processing-title"
@@ -187,17 +142,18 @@ export function InboxProcessing({
         </h2>
         <p className="mt-3 text-sm">
           {action === 'sync'
-            ? 'Bring in up to 20 matching emails from Gmail, then analyze any that still need it. '
+            ? 'Sync and analyze up to 20 matching Gmail emails. '
             : action === 'failed'
               ? 'Try again for up to 20 emails we couldn’t analyze before. '
               : 'Pick up where you left off with up to 20 saved emails. '}
-          Your email text is shared with our AI service to create summaries and
-          suggested replies. Nothing is sent to your contacts. Finished results
-          stay saved if you leave this page. Clear requests may automatically
-          become Pending tasks in Actions. Existing tasks stay unchanged.
+          Clear requests may become tasks in Actions.
+        </p>
+        <p className="mt-3 text-sm text-muted">
+          Your email text is shared with our AI service. Nothing is sent to your
+          contacts.
         </p>
         {action === 'sync' && (
-          <p className="mt-3 text-sm">
+          <p className="mt-3 break-words text-xs text-muted">
             {syncQuery
               ? `Inbox filter: ${syncQuery}`
               : 'Emails to include: recent inbox messages.'}

@@ -44,6 +44,7 @@ def test_postgres_engine_is_lazy_and_uses_psycopg() -> None:
         assert database.engine.url.drivername == "postgresql+psycopg"
         assert database.engine.url.query["sslmode"] == "require"
         assert database.session_factory.kw["bind"] is database.engine
+        assert database.engine.hide_parameters
     finally:
         database.engine.dispose()
 

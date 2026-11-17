@@ -315,6 +315,13 @@ Authenticated `/api/emails` endpoints provide listing, detail, analysis, and his
 mutations use the existing session CSRF token. Imported data remains after disconnect,
 with automated retention controls deferred. The landing page does not display email content.
 
+Phase 9 reuses the existing tests and adds first-pass synthetic AI scoring, explicit
+`--live` evaluation opt-in, and SQL parameter hiding. The
+[security review](docs/SECURITY_REVIEW.md) records tested controls, operator-assisted
+deletion, provider-policy findings, and remaining release/manual checks. Saved data
+has no automatic expiry or self-service deletion. Provider privacy and production
+configuration still require verification before release.
+
 ## Actions and reply editing (Phase 8)
 
 Actions use compact task rows with a one-click complete/reopen control, colored status
@@ -442,8 +449,9 @@ outside database transactions. `/api/dev/analyze` remains stateless.
 
 Email insertion uses PostgreSQL `ON CONFLICT DO NOTHING` to retain the original message.
 Analysis attempts preserve history; the latest completed attempt is selected by creation
-time and UUID as a tie-breaker. Actions are created explicitly by the user, and must refer
-to their own emails. User deletion cascades to dependent records. Gmail disconnection
+time and UUID as a tie-breaker. Actions are created manually or by the scoped AI tool
+during user-started analysis, and must refer to their own emails. User deletion
+cascades to dependent records. Gmail disconnection
 retains email history and clears the encrypted refresh token. The connection repository
 expects caller-encrypted ciphertext, now supplied by the Phase 4 auth service.
 Conditional refresh writes cannot restore a disconnected connection.

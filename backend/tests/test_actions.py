@@ -121,13 +121,14 @@ def test_list_and_update_contract(client, monkeypatch) -> None:
     assert update.call_args.args[2] == action_id
 
 
-def test_safe_errors(client, monkeypatch) -> None:
+def test_safe_errors(client, monkeypatch, caplog) -> None:
     monkeypatch.setattr(
         service, "list_actions", Mock(side_effect=SQLAlchemyError("private email data"))
     )
     response = client.get("/api/actions")
     assert response.status_code == 503
     assert "private" not in response.get_data(as_text=True)
+    assert "private email data" not in caplog.text
     monkeypatch.setattr(
         service,
         "update_action",
