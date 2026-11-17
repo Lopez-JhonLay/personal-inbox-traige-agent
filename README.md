@@ -35,6 +35,12 @@ all eight evaluation cases and manual review. Privacy review for non-synthetic e
 content remains later work; free-model capacity can still be rate limited.
 Client factories do not call external services during application startup.
 
+Phase 10 deployment uses two Git-linked Vercel projects, one for React and one for
+Flask, with `/api` forwarded through the frontend hostname. See the
+[deployment guide](docs/DEPLOYMENT.md) for Production variables, stable addresses,
+Google Console setup, acceptance checks, and rollback. Initial hosted access is for
+approved Google test users; public-launch verification remains separate.
+
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
 `git@github.com:Lopez-JhonLay/personal-inbox-traige-agent.git`. Repository-local Git
 settings use `Lopez-JhonLay`, `jhonlaylopez000@gmail.com`, and the personal
