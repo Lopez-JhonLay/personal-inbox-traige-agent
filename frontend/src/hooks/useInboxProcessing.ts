@@ -5,6 +5,7 @@ import { ApiError } from '../services/api'
 import { listStoredEmails } from '../services/emails'
 import type { AnalysisStatus, ConnectionStatus } from '../types/api'
 import { useEmailMutations } from './useEmails'
+import { friendlyError, notify } from '../notifications/toasts'
 
 export type ProcessingAction = 'sync' | 'pending' | 'failed'
 export interface ProcessingProgress {
@@ -26,6 +27,8 @@ export interface ProcessingProgress {
   deferred: number
   errorCode: string | null
   retryAfter: string | null
+  tasksCreated: number
+  automationWarnings: number
 }
 const initialProgress: ProcessingProgress = {
   phase: 'idle',
@@ -39,6 +42,8 @@ const initialProgress: ProcessingProgress = {
   deferred: 0,
   errorCode: null,
   retryAfter: null,
+  tasksCreated: 0,
+  automationWarnings: 0,
 }
 const pauseCodes = new Set([
   'AI_RATE_LIMITED',
@@ -56,7 +61,7 @@ const pauseCodes = new Set([
 
 export function useInboxProcessing(userId: string) {
   const client = useQueryClient()
-  const { sync, analyze } = useEmailMutations(userId)
+  const { sync, analyze } = useEmailMutations(userId, true)
   const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState<ProcessingProgress>(initialProgress)
@@ -101,6 +106,13 @@ export function useInboxProcessing(userId: string) {
     let done = 0
     let failed = 0
     let paused = false
+    let lastError = ''
+    function recordError(message: string) {
+      lastError = message
+      if (active.current) setError(message)
+    }
+    let tasksCreated = 0
+    let automationWarnings = 0
     try {
       let ids: string[]
       if (action === 'sync') {
@@ -117,7 +129,7 @@ export function useInboxProcessing(userId: string) {
           deferred: result.deferred,
           errorCode: result.errors[0]?.code ?? null,
         })
-        if (result.errors.length) setError(result.errors[0].message)
+        if (result.errors.length) recordError(result.errors[0].message)
         ids = result.errors.some((item) =>
           [
             'GMAIL_RATE_LIMITED',
@@ -150,15 +162,35 @@ export function useInboxProcessing(userId: string) {
         }
         updateProgress({ phase: 'analyzing', current: index + 1 })
         try {
-          await analyze.mutateAsync(id)
+          const result = await analyze.mutateAsync(id)
           done++
-          updateProgress({ completed: done })
+          if (result.auto_action?.status === 'created') tasksCreated++
+          if (result.auto_action?.status === 'unavailable') automationWarnings++
+          updateProgress({ completed: done, tasksCreated, automationWarnings })
+          if (result.auto_action?.error_code === 'AI_RATE_LIMITED') {
+            paused = true
+            const retry = result.auto_action.retry_after
+            const retryMessage = retry
+              ? /^\d+$/.test(retry)
+                ? ` Retry in ${retry} seconds.`
+                : ` Retry after ${retry}.`
+              : ''
+            updateProgress({
+              errorCode: 'AI_RATE_LIMITED',
+              retryAfter: retry ?? null,
+            })
+            if (active.current)
+              recordError(
+                `Analysis saved. Automatic task creation is rate limited.${retryMessage} Remaining work is saved.`,
+              )
+            break
+          }
         } catch (cause) {
           failed++
           updateProgress({ failed })
           if (!(cause instanceof ApiError)) throw cause
           if (!active.current) break
-          setError(cause.message)
+          recordError(friendlyError(cause))
           updateProgress({
             errorCode: cause.code,
             retryAfter: cause.retryAfter,
@@ -170,7 +202,9 @@ export function useInboxProcessing(userId: string) {
                 ? ` Retry in ${cause.retryAfter} seconds.`
                 : ` Retry after ${cause.retryAfter}.`
               : ''
-            setError(`${cause.message}${retry} Remaining work is saved.`)
+            recordError(
+              `${friendlyError(cause)}${retry} Remaining work is saved.`,
+            )
             break
           }
         }
@@ -182,13 +216,27 @@ export function useInboxProcessing(userId: string) {
         errorCode: cause instanceof ApiError ? cause.code : null,
         retryAfter: cause instanceof ApiError ? cause.retryAfter : null,
       })
-      if (active.current)
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Processing failed. Please try again.',
-        )
+      if (active.current) recordError(friendlyError(cause))
     } finally {
+      if (stillCurrent()) {
+        const summary =
+          done === 0
+            ? 'No new emails needed analysis.'
+            : `${done} email${done === 1 ? '' : 's'} analyzed. ${tasksCreated} task${tasksCreated === 1 ? '' : 's'} added to Actions.`
+        if (lastError)
+          notify(
+            'error',
+            paused ? 'Processing paused' : "Couldn't finish processing",
+            lastError,
+          )
+        else if (failed || automationWarnings || paused)
+          notify(
+            'warning',
+            'Inbox update needs attention',
+            `${summary} ${automationWarnings ? "Some tasks couldn't be added automatically; you can add them manually." : 'Some work is still unfinished. You can continue from your inbox.'}`,
+          )
+        else notify('success', 'Inbox updated', summary)
+      }
       running.current = false
       if (active.current) setIsRunning(false)
       // Never start processing from invalidation; only read queries are refreshed.

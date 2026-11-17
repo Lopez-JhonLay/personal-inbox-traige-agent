@@ -143,6 +143,13 @@ Allow users to track tasks identified from emails.
 
 Users can manually update action statuses without modifying the original Gmail message.
 
+During user-started analysis/reanalysis, the model may request the backend's scoped
+`add_action` tool for a clear outstanding obligation. This creates at most one Pending
+task for an email that has no existing tasks. Informational messages, promotions, vague
+suggestions, and resolved work do not qualify. Existing tasks, including Completed and
+Dismissed, stay unchanged. Manual creation remains available. This authorization covers
+internal task tracking only; it does not authorize sending messages or executing the task.
+
 ---
 
 ## 5. Application Workflow

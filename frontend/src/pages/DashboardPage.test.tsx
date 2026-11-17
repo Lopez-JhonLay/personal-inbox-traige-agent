@@ -87,6 +87,40 @@ beforeEach(() => {
   vi.mocked(analyzeStoredEmail).mockResolvedValue(testAnalysis)
 })
 
+it('preserves the pending action filter across other filters and pagination, then clears it', async () => {
+  const user = userEvent.setup()
+  dashboard('/dashboard?has_pending_action=true&sort=received_asc')
+  await screen.findByText('Review proposal')
+  expect(
+    screen.getByRole('checkbox', { name: 'Has pending actions' }),
+  ).toBeChecked()
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Category' }),
+    'Work',
+  )
+  await user.click(screen.getByRole('button', { name: 'Next' }))
+  await waitFor(() =>
+    expect(browseEmails).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        offset: 20,
+        category: 'Work',
+        has_pending_action: true,
+      }),
+      expect.any(AbortSignal),
+    ),
+  )
+  expect(screen.getByLabelText('Current URL')).toHaveTextContent(
+    'has_pending_action=true',
+  )
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+  expect(screen.getByLabelText('Current URL')).toHaveTextContent(
+    '/dashboard?sort=received_asc',
+  )
+  expect(
+    screen.getByRole('checkbox', { name: 'Has pending actions' }),
+  ).not.toBeChecked()
+})
+
 function Location() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -274,7 +308,11 @@ it('retains successful results when forced reanalysis fails', async () => {
       name: 'Reanalyze email',
     }),
   )
-  expect(await screen.findByText('Analysis unavailable.')).toBeInTheDocument()
+  expect(
+    await screen.findByText(
+      /Please try again; your previous results are still available/,
+    ),
+  ).toBeInTheDocument()
   expect(
     screen.getByRole('region', { name: 'Review proposal' }),
   ).toHaveTextContent('Please review the proposal.')
@@ -320,10 +358,8 @@ it('displays the assembled reply with greeting, body, and closing', async () => 
     await screen.findByText('Suggested reply', { selector: 'summary' }),
   )
   expect(
-    screen.getByText(
-      (_, element) => element?.tagName === 'P' && element.textContent === reply,
-    ),
-  ).toBeVisible()
+    screen.getByRole('textbox', { name: 'AI-generated reply' }),
+  ).toHaveValue(reply)
 })
 
 it('keeps analysis progress visible after reopening an email and hides the previous failure while working', async () => {
@@ -332,9 +368,7 @@ it('keeps analysis progress visible after reopening an email and hides the previ
   vi.mocked(getEmail).mockResolvedValue({ ...email, analysis_status: 'failed' })
   vi.mocked(analyzeStoredEmail).mockReturnValue(pending.promise)
   dashboard('/dashboard?email=one')
-  expect(
-    await screen.findByText(/Your previous summary and reply are still here/),
-  ).toBeVisible()
+  expect(await screen.findByText('Please review the proposal.')).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'Reanalyze' }))
   await user.click(
     within(screen.getByRole('dialog')).getByRole('button', {
@@ -455,7 +489,9 @@ it('keeps the dashboard visible when logout fails and never automatically retrie
   dashboard()
   await screen.findByText('Review proposal')
   await userEvent.click(screen.getByRole('button', { name: 'Log out' }))
-  expect(await screen.findByText('Logout unavailable.')).toBeInTheDocument()
+  expect(
+    await screen.findByText(/Check your connection and try again/),
+  ).toBeInTheDocument()
   expect(screen.getByText('Review proposal')).toBeInTheDocument()
   expect(logout).toHaveBeenCalledTimes(1)
 })
@@ -500,10 +536,12 @@ it('resets page and selection on filter changes and clears filters while preserv
   expect(screen.getByLabelText('Current URL')).toHaveTextContent(
     '/dashboard?sort=received_asc',
   )
-  expect(screen.queryByText('Pending actions')).not.toBeInTheDocument()
   expect(
-    screen.queryByRole('checkbox', { name: 'Has pending actions' }),
-  ).not.toBeInTheDocument()
+    screen.getByRole('link', { name: 'Pending actions: 0' }),
+  ).toHaveAttribute('href', '/actions')
+  expect(
+    screen.getByRole('checkbox', { name: 'Has pending actions' }),
+  ).not.toBeChecked()
   expect(analyzeStoredEmail).not.toHaveBeenCalled()
 })
 
@@ -513,7 +551,7 @@ it('keeps each filter in one toolbar with one clear control and no duplicate vie
   await screen.findByText('Review proposal')
   const filters = screen.getByRole('region', { name: 'Filter emails' })
   expect(within(filters).getAllByRole('combobox')).toHaveLength(4)
-  expect(within(filters).getAllByRole('checkbox')).toHaveLength(1)
+  expect(within(filters).getAllByRole('checkbox')).toHaveLength(2)
   expect(
     within(filters).getByRole('combobox', { name: 'Category' }),
   ).toHaveValue('Work')
@@ -609,12 +647,12 @@ it('keeps the queue alive while filtering and reading, with real progress and di
   await act(async () => {
     first.resolve(testAnalysis)
   })
-  await screen.findByText('2 analyzed, 0 analysis failures in this run.')
+  await screen.findByText('2 emails analyzed. 0 tasks added to Actions.')
   expect(analyzeStoredEmail).toHaveBeenCalledTimes(2)
   expect(syncInbox).toHaveBeenCalledTimes(1)
   expect(
-    screen.getByRole('progressbar', { name: 'Analysis progress' }),
-  ).toHaveAttribute('value', '2')
+    screen.queryByRole('progressbar', { name: 'Analysis progress' }),
+  ).not.toBeInTheDocument()
 })
 
 it('restores the filtered list after browser Back and closes the reader when paging', async () => {

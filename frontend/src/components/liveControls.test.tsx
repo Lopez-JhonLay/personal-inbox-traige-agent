@@ -186,9 +186,7 @@ it('disables busy disconnect controls and removes private processing state on su
   await act(async () => {
     disconnecting.resolve(true)
   })
-  expect(
-    await screen.findByText('Gmail access removed. You are logged out.'),
-  ).toBeInTheDocument()
+  expect(await screen.findByText('Gmail access removed')).toBeInTheDocument()
   expect(screen.queryByText('Process your inbox')).not.toBeInTheDocument()
 })
 
@@ -233,7 +231,7 @@ it('a confirmed sync with no pending IDs does not invoke analysis', async () => 
       screen.getByRole('dialog', { name: 'Sync and analyze emails?' }),
     ).getByRole('button', { name: 'Sync and analyze' }),
   )
-  await screen.findByText(/0 analyzed, 0 analysis failures in this run/)
+  await screen.findByText('No new emails needed analysis.')
   expect(syncInbox).toHaveBeenCalledTimes(1)
   expect(analyzeStoredEmail).not.toHaveBeenCalled()
 })

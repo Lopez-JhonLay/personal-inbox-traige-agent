@@ -48,6 +48,8 @@ function Dashboard({ userId }: { userId: string }) {
     priority: priorities.find((value) => value === params.get('priority')),
     category: categories.find((value) => value === params.get('category')),
     reply_needed: params.get('reply_needed') === 'true' ? true : undefined,
+    has_pending_action:
+      params.get('has_pending_action') === 'true' ? true : undefined,
     analysis_status: analysisStatuses.find(
       (value) => value === params.get('analysis_status'),
     ),
@@ -62,6 +64,7 @@ function Dashboard({ userId }: { userId: string }) {
     filters.priority ||
     filters.category ||
     filters.reply_needed ||
+    filters.has_pending_action ||
     filters.analysis_status
   )
 
@@ -94,7 +97,6 @@ function Dashboard({ userId }: { userId: string }) {
       else next.delete(key)
       next.delete('offset')
       next.delete('email')
-      next.delete('has_pending_action')
       return next
     })
     if (listPane.current) listPane.current.scrollTop = 0
@@ -170,6 +172,13 @@ function Dashboard({ userId }: { userId: string }) {
         </p>
       )}
       <div className={selected ? 'hidden lg:block' : ''}>
+        {overview.data && (
+          <p className="mb-3 text-sm">
+            <Link className="underline" to="/actions">
+              Pending actions: {overview.data.pending_action_count}
+            </Link>
+          </p>
+        )}
         <EmailFilters
           value={filters}
           onChange={change}

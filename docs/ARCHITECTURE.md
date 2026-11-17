@@ -88,7 +88,7 @@ there is no global scope relaxation or duplicate authorization-code exchange.
 `GET /api/emails/overview` returns identity, timezone, last successful sync and four
 global totals. Email listing adds `reply_needed`, `has_pending_action`, and `sort`
 (`received_desc`, `received_asc`, `priority_desc`) with stable tie-breaking. Pending
-actions use owned records in status `pending`; creation remains Phase 8. Migration
+actions use owned records in status `pending`; Phase 8 adds creation and tracking. Migration
 `0003` adds nullable `gmail_connections.last_synced_at`, updated under the operation
 lease only after a failure-free, non-deferred sync. It is applied on Neon with no
 schema drift. Existing stored content is retained. Automated verification passed;
@@ -110,6 +110,26 @@ coordination/review without inventing availability or authorizing commitments. N
 new output field or auto-send behavior is introduced. Summaries/extractions stay factual;
 completed work and signature invention remain forbidden. One live synthetic work-request case passed on the free ERNIE
 model; broader live quality review remains pending.
+
+Phase 8 adds authenticated action creation/listing/status endpoints and `/actions`.
+The existing action table and status values are reused without a migration. Services
+own transactions; repositories enforce ownership through the associated email/connection.
+Creation locks the owned email row before checking for matching owner/email/trimmed
+description/date, serializing concurrent submissions without an additional uniqueness
+constraint. Matching tasks are reused across all statuses without reopening them.
+List queries paginate with due-date ordering, undated last, and load associated email
+metadata together. POST/PATCH require CSRF; all action responses are private/no-store.
+Saved-task operations do not require an active Gmail connection or operation lease.
+
+The reader offers an editable, prefilled task approval form. `/actions` starts with
+Pending and offers all four statuses, pagination, and links to the saved email reader.
+The inbox exposes its existing Pending-only count/filter. Action query keys live below
+`['emails', userId, 'actions', filters]`, so existing private-cache cleanup covers them;
+separate action mutation keys avoid blocking inbox processing. Mutations invalidate
+the user's email/action queries. Reply edits are local component state, reset by the
+email/analysis identity, and Copy uses the edited value. No draft persistence, AI prompt
+change, additional dependency, Gmail write permission, or external action is introduced.
+See the Phase 8 verification guide for automated results and remaining browser checks.
 
 Git is initialized on `main` and connected to the personal GitHub repository with a
 repository-local personal SSH key. See `TASKS.md`
@@ -520,7 +540,10 @@ Stores actions associated with emails.
 
 Track tasks that the user chooses to manage after reviewing AI recommendations.
 
-AI-generated suggestions should not automatically become confirmed user tasks.
+The user-authorized analysis workflow may create one internal Pending task for a clear
+obligation through the scoped `add_action` tool, only when the email has no tasks.
+Manual task creation still uses an editable approval form. Task creation never performs
+the underlying work or grants permission for Gmail writes.
 
 ### Phase 5 operation leases
 
@@ -814,11 +837,44 @@ records and manual reanalysis below belong to the later persistence pipeline.
 
 ### 7.7 Agent Design
 
-The MVP uses a single LLM analysis component.
+The MVP uses the existing structured analysis plus one bounded native tool-decision
+step for eligible emails. A separate `task-decision-v2` prompt offers only `add_action`
+with an empty argument object and `tool_choice: auto`; no JSON response format is mixed
+into that request. The helper validates at most one tool call, or a normal no-call
+response, with a 20-second timeout, 1,024 output-token cap, and no retries. It uses the
+configured model and existing OpenRouter client, without a tool registry/framework or
+follow-up conversation. The synthetic development analysis endpoint remains analysis-only.
 
-It is initially a structured AI workflow, not an autonomous multi-step agent.
+Only user-started stored-email analysis/reanalysis can execute this tool. Reused analyses,
+missing extracted requests, and emails with any existing owned task skip the extra call.
+The backend binds user/email, description from requested_action, validated deadline, and
+Pending status. It rechecks ownership/lease and locks the email before checking again for
+any task, sharing the lock used by manual creation. Existing task text, dates and statuses
+are never overwritten. Network calls hold no database locks. Task insertion uses a savepoint
+within analysis completion so isolated task-write errors preserve the completed analysis;
+transaction-wide failures and expired leases still stop writes normally.
 
-Future versions may introduce tool calling for:
+Analysis responses add `auto_action` status (`created`, `existing`, `not_needed`,
+`unavailable`, `skipped`) and optional `action_id`, `error_code`, `retry_after`.
+The frontend uses shared top-of-viewport toasts for individual outcomes, batch task
+counts and automation warnings. A small external store powers one portal-based viewport;
+native popovers display it above dialogs, with the portal following the open dialog to
+remain within its focus boundary. Successes dismiss after 4.5 seconds, other notices
+after 7 seconds; hover, focus and hidden tabs pause the timer. Notices are capped at
+three, deduplicated, and cleared with private-cache cleanup. Mutation errors use safe,
+code-based recovery text. Batch mutations suppress individual toasts and emit one summary.
+Mutation success callbacks check the current account before announcing results. Initial
+read failures retain contextual retry controls; completed operation messages do not stay
+in the page. Actions use compact rows, quick completion/reopening, readable calendar dates,
+and no pagination controls for a single page. No notification library is introduced.
+A tool-stage 429 saves the current analysis and pauses the remaining batch. Other
+tool failures save analysis and allow remaining work to continue. These outcomes are
+returned for the current request, not persisted as additional analysis metadata.
+There is no background scheduler or automatic backfill. Tool calls cannot send email,
+execute task descriptions, or choose another account/email. Prompt and source data remain
+separate, and logs exclude raw email content and provider/tool responses.
+
+Future versions may introduce additional tools for:
 
 - Retrieving previous email context.
 - Looking up user preferences.
@@ -1287,5 +1343,5 @@ The architecture is considered successful when:
 
 **Document Version:** 1.0  
 **Status:** Proposed Architecture  
-**Next Step:** Complete Phase 6/7 browser acceptance, then implement Phase 8 action tracking;
+**Next Step:** Complete Phase 8 browser acceptance, then continue Phase 9;
 see [Phase 2 guide](TASKS.md#phase-2-analysis-and-testing-guide) for current analysis behavior and evaluation limits.

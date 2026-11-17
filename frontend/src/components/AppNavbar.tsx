@@ -91,6 +91,13 @@ export function AppNavbar({
             </NavLink>
             <NavLink
               className="nav-link"
+              to="/actions"
+              onClick={() => setMenuOpen(false)}
+            >
+              Actions
+            </NavLink>
+            <NavLink
+              className="nav-link"
               to="/settings"
               onClick={() => setMenuOpen(false)}
             >

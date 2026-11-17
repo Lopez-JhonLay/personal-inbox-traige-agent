@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import HomePage from './pages/HomePage'
 import DashboardPage from './pages/DashboardPage'
 import SettingsPage from './pages/SettingsPage'
+import ActionsPage from './pages/ActionsPage'
 import { AppLayout } from './components/AppLayout'
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="actions" element={<ActionsPage />} />
           <Route
             path="*"
             element={

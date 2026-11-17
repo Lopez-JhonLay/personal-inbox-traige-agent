@@ -11,7 +11,12 @@ from app import create_app
 from app.config import Settings
 from app.schemas.analysis_schema import EmailAnalysis, EmailInput
 from app.services import ai_service
-from app.services.ai_service import AnalysisError, analyze_email, safe_retry_after
+from app.services.ai_service import (
+    AnalysisError,
+    analyze_email,
+    safe_retry_after,
+    should_add_action,
+)
 from app.services.analysis_prompt import PROMPT_VERSION, build_messages
 
 EMAIL = {
@@ -609,3 +614,125 @@ def test_reply_spacing_is_normalized_without_changing_content(separator: str) ->
     payload = {**ANALYSIS, "draft_reply": separator.join(parts)}
     result = EmailAnalysis.model_validate_json(json.dumps(payload))
     assert result.draft_reply == "\n\n".join(parts)
+
+
+def task_completion(arguments: str = "{}", name: str = "add_action") -> dict:
+    return completion(
+        message={
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": "call-task",
+                    "type": "function",
+                    "function": {"name": name, "arguments": arguments},
+                }
+            ],
+        },
+        finish_reason="tool_calls",
+    )
+
+
+def task_decision(settings: Settings) -> bool:
+    return should_add_action(
+        EmailInput.model_validate_json(json.dumps(EMAIL)),
+        EmailAnalysis.model_validate_json(json.dumps(ANALYSIS)),
+        settings,
+    )
+
+
+def test_native_task_tool_contract(settings, transport) -> None:
+    transport.return_value = httpx.Response(200, json=task_completion())
+    assert task_decision(settings) is True
+    request = transport.call_args.args[0]
+    payload = json.loads(request.content)
+    assert payload["tool_choice"] == "auto"
+    assert len(payload["tools"]) == 1
+    assert payload["tools"][0]["function"]["name"] == "add_action"
+    assert payload["tools"][0]["function"]["parameters"]["additionalProperties"] is False
+    assert "response_format" not in payload
+    assert "parallel_tool_calls" not in payload
+    assert request.extensions["timeout"]["read"] == 20.0
+    assert transport.call_count == 1
+
+
+def test_task_no_call_does_not_request_execution(settings, transport) -> None:
+    transport.return_value = httpx.Response(200, json=completion(content="No task needed."))
+    assert task_decision(settings) is False
+
+
+@pytest.mark.parametrize(
+    "arguments", ['{"email_id":"other"}', "[]", "null", "invalid", '{"status":"completed"}']
+)
+def test_task_tool_rejects_arguments(settings, transport, arguments) -> None:
+    transport.return_value = httpx.Response(200, json=task_completion(arguments))
+    with pytest.raises(AnalysisError, match="AI_INVALID_OUTPUT"):
+        task_decision(settings)
+    assert transport.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "case", ["unknown", "multiple", "truncated", "refused", "empty", "no_choices"]
+)
+def test_task_tool_rejects_unsafe_responses(settings, transport, case) -> None:
+    result = task_completion()
+    choice = result["choices"][0]
+    if case == "unknown":
+        choice["message"]["tool_calls"][0]["function"]["name"] = "send_email"
+    elif case == "multiple":
+        choice["message"]["tool_calls"] *= 2
+    elif case == "truncated":
+        choice["finish_reason"] = "length"
+    elif case == "refused":
+        choice["message"]["refusal"] = "No."
+    elif case == "empty":
+        choice["message"]["tool_calls"] = []
+        choice["finish_reason"] = "stop"
+    else:
+        result["choices"] = []
+    transport.return_value = httpx.Response(200, json=result)
+    with pytest.raises(AnalysisError) as caught:
+        task_decision(settings)
+    assert caught.value.code == ("AI_REFUSED" if case == "refused" else "AI_INVALID_OUTPUT")
+    assert transport.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "status,code", [(400, "AI_UNAVAILABLE"), (429, "AI_RATE_LIMITED"), (500, "AI_UNAVAILABLE")]
+)
+def test_task_provider_failure_is_bounded(settings, transport, status, code) -> None:
+    transport.return_value = httpx.Response(
+        status, json={"error": {"message": "private"}}, headers={"Retry-After": "30"}
+    )
+    with pytest.raises(AnalysisError) as caught:
+        task_decision(settings)
+    assert caught.value.code == code
+    assert "private" not in caught.value.message
+    if status == 429:
+        assert caught.value.retry_after == "30"
+    assert transport.call_count == 1
+
+
+def test_task_timeout_is_not_retried(settings, transport) -> None:
+    transport.side_effect = httpx.ReadTimeout("private")
+    with pytest.raises(AnalysisError, match="AI_TIMEOUT"):
+        task_decision(settings)
+    assert transport.call_count == 1
+
+
+def test_task_evaluation_respects_budget_and_stops_on_rate_limit(monkeypatch) -> None:
+    from scripts import evaluate_task_decisions as evaluation
+
+    settings = Settings(_env_file=None, openrouter_api_key="synthetic")
+    decide = Mock(side_effect=[True, AnalysisError("AI_RATE_LIMITED", "Limited.", 429)])
+    monkeypatch.setattr(evaluation, "should_add_action", decide)
+    monkeypatch.setattr(evaluation.time, "sleep", lambda _: None)
+    report = evaluation.evaluate(settings, 8)
+    assert report["requests_attempted"] == 2
+    assert report["cases_passed"] == 1
+    assert report["results"][1]["error_code"] == "AI_RATE_LIMITED"
+    decide.reset_mock(side_effect=True)
+    decide.return_value = True
+    assert evaluation.evaluate(settings, 1)["requests_attempted"] == 1
+    assert decide.call_count == 1
+    with pytest.raises(ValueError, match="budget"):
+        evaluation.evaluate(settings, 9)

@@ -11,3 +11,13 @@ export function formatTimestamp(
     timeZone: timezone,
   }).format(date)
 }
+
+/** Format a calendar date without shifting it into the viewer's timezone. */
+export function formatDate(value: string): string {
+  const date = new Date(`${value}T12:00:00Z`)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).format(date)
+}

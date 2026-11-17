@@ -175,3 +175,17 @@ its scrolling content. Both inner scroll areas use `theme-scrollbar` with paper 
 charcoal thumbs, rounded WebKit styling, a stable gutter, and native forced-color fallback.
 Panel loading uses a centered circular indicator; descriptive labels remain available
 to screen readers without visible loading text.
+
+## Actions and notifications
+
+Action rows keep the completion control, task description and email reference together,
+with a colored status selector and readable calendar date. The layout stacks metadata
+on narrow screens; one-page lists omit pagination controls.
+
+`styles/notifications.css` styles the shared top-center toast viewport using existing
+paper/ink, success, warning and danger tokens. Each notification has a status icon,
+close control, soft elevated shadow and countdown. Success lasts 4.5 seconds; other
+notices last 7 seconds. Hover, keyboard focus and hidden tabs pause dismissal. Existing
+motion-enter respects reduced motion; the countdown is hidden under reduced motion.
+The portal follows open dialogs and uses native popovers to stay visible and accessible
+within the modal boundary. No focus is moved when a notification appears.

@@ -73,9 +73,49 @@ export interface AnalysisResult {
     model_identifier: string | null
   }
   reused: boolean
+  auto_action?: AutoActionResult
+}
+export interface AutoActionResult {
+  status: 'created' | 'existing' | 'not_needed' | 'unavailable' | 'skipped'
+  action_id?: string
+  error_code?: string
+  retry_after?: string
 }
 export interface ProcessingCounts {
   pending: number
   completed: number
   failed: number
+}
+
+export type ActionStatus = 'pending' | 'in_progress' | 'completed' | 'dismissed'
+export interface ActionItem {
+  id: string
+  email_id: string
+  description: string
+  due_date: string | null
+  status: ActionStatus
+  created_at: string
+  updated_at: string
+  email_subject: string | null
+  email_sender: string | null
+}
+export interface ActionFilters {
+  status?: ActionStatus
+  email_id?: string
+  offset: number
+}
+export interface ActionPage {
+  actions: ActionItem[]
+  total: number
+  limit: number
+  offset: number
+}
+export interface CreateAction {
+  email_id: string
+  description: string
+  due_date: string | null
+}
+export interface CreateActionResult {
+  action: ActionItem
+  reused: boolean
 }

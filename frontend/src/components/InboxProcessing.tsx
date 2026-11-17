@@ -135,7 +135,7 @@ export function InboxProcessing({
           />
         )}
       </div>
-      {progress.phase !== 'idle' && (
+      {(busy || progress.phase === 'paused') && (
         <section
           aria-label="Processing progress"
           aria-busy={busy}
@@ -173,7 +173,6 @@ export function InboxProcessing({
           )}
         </section>
       )}
-      {processing.error && <ErrorState message={processing.error} />}
       <dialog
         ref={dialog}
         aria-labelledby="processing-title"
@@ -194,7 +193,8 @@ export function InboxProcessing({
               : 'Pick up where you left off with up to 20 saved emails. '}
           Your email text is shared with our AI service to create summaries and
           suggested replies. Nothing is sent to your contacts. Finished results
-          stay saved if you leave this page.
+          stay saved if you leave this page. Clear requests may automatically
+          become Pending tasks in Actions. Existing tasks stay unchanged.
         </p>
         {action === 'sync' && (
           <p className="mt-3 text-sm">

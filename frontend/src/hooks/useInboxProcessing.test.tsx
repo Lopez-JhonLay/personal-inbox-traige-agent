@@ -64,6 +64,55 @@ afterEach(() => {
   onlineManager.setOnline(true)
 })
 
+it('counts created tasks and automation warnings without failing successful analyses', async () => {
+  const { wrapper } = harness()
+  vi.mocked(analyzeStoredEmail)
+    .mockResolvedValueOnce({
+      ...testAnalysis,
+      auto_action: { status: 'created', action_id: 'task' },
+    })
+    .mockResolvedValueOnce({
+      ...testAnalysis,
+      auto_action: { status: 'unavailable', error_code: 'AI_TIMEOUT' },
+    })
+  const { result } = renderHook(() => useInboxProcessing('user-a'), { wrapper })
+  await act(async () => {
+    await result.current.run('sync')
+  })
+  expect(result.current.progress).toMatchObject({
+    phase: 'finished',
+    completed: 2,
+    failed: 0,
+    tasksCreated: 1,
+    automationWarnings: 1,
+  })
+})
+
+it('preserves the successful analysis and pauses remaining work on a task-stage rate limit', async () => {
+  const { wrapper } = harness()
+  vi.mocked(analyzeStoredEmail).mockResolvedValueOnce({
+    ...testAnalysis,
+    auto_action: {
+      status: 'unavailable',
+      error_code: 'AI_RATE_LIMITED',
+      retry_after: '30',
+    },
+  })
+  const { result } = renderHook(() => useInboxProcessing('user-a'), { wrapper })
+  await act(async () => {
+    await result.current.run('sync')
+  })
+  expect(analyzeStoredEmail).toHaveBeenCalledTimes(1)
+  expect(result.current.progress).toMatchObject({
+    phase: 'paused',
+    completed: 1,
+    failed: 0,
+    automationWarnings: 1,
+    retryAfter: '30',
+  })
+  expect(result.current.error).toContain('Analysis saved.')
+})
+
 it('does no inference on mount and processes confirmed work one request at a time', async () => {
   const { wrapper } = harness()
   const first = deferred<typeof testAnalysis>()

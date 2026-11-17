@@ -7,6 +7,7 @@ from werkzeug.exceptions import HTTPException
 from app.config import Settings
 from app.database import create_database
 from app.errors import handle_http_error
+from app.routes.actions import actions_bp
 from app.routes.analysis import analysis_bp
 from app.routes.auth import auth_bp
 from app.routes.emails import emails_bp
@@ -37,6 +38,7 @@ def create_app(settings: Settings | None = None) -> Flask:
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(emails_bp, url_prefix="/api/emails")
+    app.register_blueprint(actions_bp, url_prefix="/api/actions")
     install_oauth_log_filter()
     if settings.enable_dev_analysis:
         app.register_blueprint(analysis_bp, url_prefix="/api")

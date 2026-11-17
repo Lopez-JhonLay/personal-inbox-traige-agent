@@ -4,6 +4,7 @@ import App from './App'
 import './index.css'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createQueryClient } from './query/queryClient'
+import { ToastViewport } from './components/ui/ToastViewport'
 
 const queryClient = createQueryClient()
 
@@ -14,6 +15,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
+      <ToastViewport />
     </QueryClientProvider>
   </StrictMode>,
 )

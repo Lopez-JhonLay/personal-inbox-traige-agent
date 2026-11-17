@@ -27,6 +27,7 @@ export function EmailFilters({
     value.priority ||
     value.category ||
     value.reply_needed ||
+    value.has_pending_action ||
     value.analysis_status
   )
   const selectClass =
@@ -100,6 +101,17 @@ export function EmailFilters({
             }
           />
           Needs reply
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 accent-ink"
+            checked={value.has_pending_action === true}
+            onChange={(e) =>
+              onChange('has_pending_action', e.target.checked ? 'true' : '')
+            }
+          />
+          Has pending actions
         </label>
         <button
           type="button"

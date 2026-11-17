@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -6,10 +7,12 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings
 from app.database import Database
 from app.models import Email, EmailAnalysisRecord
+from app.repositories import action_repository as actions
 from app.repositories import analysis_repository as analyses
 from app.repositories import email_query_repository as queries
 from app.repositories import email_repository as emails
@@ -18,11 +21,13 @@ from app.repositories import operation_repository as operations
 from app.repositories import user_repository as users
 from app.schemas.analysis_schema import EmailAnalysis, EmailInput
 from app.schemas.email_schema import EmailQuery, PageQuery, SyncResult
-from app.services.ai_service import AnalysisError, analyze_email
+from app.services.ai_service import AnalysisError, analyze_email, should_add_action
 from app.services.auth_service import credentials_for_user
 from app.services.gmail_service import create_gmail_client, get_message, list_message_ids
 from app.services.integration_errors import IntegrationError
 from app.utils.deadline import remaining_time
+
+logger = logging.getLogger(__name__)
 
 
 def require_user(database: Database, user_id: UUID) -> None:
@@ -225,7 +230,11 @@ def process_email(
                 raise IntegrationError("EMAIL_NOT_FOUND", "Email not found.", 404)
             latest = queries.latest_attempt(session, email_id)
             if latest and latest.status == "completed" and not force:
-                return {"analysis": analysis_data(latest), "reused": True}
+                return {
+                    "analysis": analysis_data(latest),
+                    "reused": True,
+                    "auto_action": {"status": "skipped"},
+                }
             if latest and latest.status == "pending":
                 record = latest
             else:
@@ -269,6 +278,22 @@ def process_email(
                     session, user_id, record_id, status="failed", error_code=error.code
                 )
             raise
+        auto_action = {"status": "not_needed"}
+        add_task = False
+        if validated_result.requested_action:
+            with database.session_factory.begin() as session:
+                operations.require_operation(session, user_id, operation_id)
+                existing = actions.first_email_action(session, user_id, email_id)
+                if existing is not None:
+                    auto_action = {"status": "existing", "action_id": str(existing.id)}
+            if existing is None:
+                try:
+                    add_task = should_add_action(validated_input, validated_result, settings)
+                except AnalysisError as error:
+                    auto_action = {"status": "unavailable", "error_code": error.code}
+                    if error.retry_after:
+                        auto_action["retry_after"] = error.retry_after
+                    logger.warning("Automatic task decision unavailable code=%s", error.code)
         with database.session_factory.begin() as session:
             operations.require_operation(session, user_id, operation_id)
             record = analyses.get_analysis(session, user_id, record_id)
@@ -276,4 +301,22 @@ def process_email(
             analyses.update_analysis(
                 session, user_id, record_id, status="completed", result=validated_result
             )
-            return {"analysis": analysis_data(record), "reused": False}
+            if add_task:
+                assert validated_result.requested_action is not None
+                try:
+                    with session.begin_nested():
+                        action, reused = actions.create_automatic_action(
+                            session,
+                            user_id,
+                            email_id,
+                            description=validated_result.requested_action,
+                            due_date=validated_result.deadline,
+                        )
+                        auto_action = {
+                            "status": "existing" if reused else "created",
+                            "action_id": str(action.id),
+                        }
+                except SQLAlchemyError:
+                    auto_action = {"status": "unavailable", "error_code": "DATABASE_UNAVAILABLE"}
+                    logger.warning("Automatic task insertion unavailable code=DATABASE_UNAVAILABLE")
+            return {"analysis": analysis_data(record), "reused": False, "auto_action": auto_action}

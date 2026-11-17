@@ -2,6 +2,7 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { ApiError } from '../services/api'
 import type { ConnectionStatus } from '../types/api'
 import type { EmailFilters } from '../types/api'
+import { clearToasts, friendlyError, notify } from '../notifications/toasts'
 
 export const authKey = ['auth', 'status'] as const
 export const emailKeys = {
@@ -32,6 +33,8 @@ export async function clearPrivateCache(
   client: QueryClient,
   userId?: string,
 ): Promise<void> {
+  if (userId || client.getQueriesData({ queryKey: ['emails'] }).length)
+    clearToasts()
   const filters = { queryKey: userId ? emailKeys.all(userId) : ['emails'] }
   await client.cancelQueries(filters)
   client.removeQueries(filters)
@@ -39,6 +42,7 @@ export async function clearPrivateCache(
 }
 
 export async function endSession(client: QueryClient): Promise<void> {
+  clearToasts()
   const configured =
     client.getQueryData<ConnectionStatus>(authKey)?.configured ?? true
   // Cancellation takes effect before awaiting it, preventing late auth reads from restoring a session.
@@ -91,7 +95,20 @@ export function createQueryClient(): QueryClient {
         previousUser = userId
       },
     }),
-    mutationCache: new MutationCache({ onError: handleError }),
+    mutationCache: new MutationCache({
+      onError: (error, _variables, _context, mutation) => {
+        handleError(error)
+        const key = mutation.options.mutationKey
+        if (mutation.options.meta?.silent) return
+        if (
+          key &&
+          ['emails', 'actions'].includes(String(key[0])) &&
+          client.getQueryData<ConnectionStatus>(authKey)?.user_id !== key[1]
+        )
+          return
+        notify('error', 'Something didn’t go through', friendlyError(error))
+      },
+    }),
   })
   return client
 }

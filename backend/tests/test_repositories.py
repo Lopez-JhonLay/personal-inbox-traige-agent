@@ -1,4 +1,7 @@
-from datetime import UTC, datetime, timedelta
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import UTC, date, datetime, timedelta
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
@@ -6,13 +9,18 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app import create_app
+from app.config import Settings
 from app.models import ActionItem, Email, EmailAnalysisRecord, GmailConnection, User
 from app.repositories import action_repository as actions
 from app.repositories import analysis_repository as analyses
+from app.repositories import email_query_repository as queries
 from app.repositories import email_repository as emails
 from app.repositories import gmail_connection_repository as connections
 from app.repositories import user_repository as users
+from app.schemas.action_schema import ActionQuery
 from app.schemas.analysis_schema import EmailAnalysis
+from app.schemas.email_schema import EmailQuery
 
 pytestmark = pytest.mark.database
 
@@ -94,6 +102,109 @@ def test_cross_user_reads_and_writes_are_rejected(db_session: Session, sample: S
             gmail_message_id="forbidden",
             gmail_thread_id="forbidden",
         )
+
+
+def test_action_reuse_pagination_and_reopening(db_session: Session, sample: Sample) -> None:
+    user, connection, email = sample
+    action, reused = actions.create_or_reuse_action(
+        db_session,
+        user.id,
+        email.id,
+        description="  Review proposal  ",
+        due_date=date(2026, 11, 20),
+    )
+    assert not reused and action.description == "Review proposal"
+    action_id = action.id
+    for status in ("in_progress", "completed", "dismissed", "pending"):
+        actions.update_action_status(db_session, user.id, action.id, status=status)
+        db_session.expire_all()
+        duplicate, reused = actions.create_or_reuse_action(
+            db_session,
+            user.id,
+            email.id,
+            description="Review proposal",
+            due_date=date(2026, 11, 20),
+        )
+        assert reused and duplicate.id == action_id and duplicate.status == status
+        expected_pending = int(status == "pending")
+        assert (
+            queries.overview_counts(db_session, user.id)["pending_action_count"] == expected_pending
+        )
+        assert (
+            queries.email_page(db_session, user.id, EmailQuery(has_pending_action=True))[1]
+            == expected_pending
+        )
+    distinct, reused = actions.create_or_reuse_action(
+        db_session, user.id, email.id, description="Review proposal"
+    )
+    assert not reused and distinct.id != action_id
+    rows, total = actions.action_page(db_session, user.id, ActionQuery(limit=1))
+    assert total == 2 and rows[0].id == action_id
+    rows, total = actions.action_page(db_session, user.id, ActionQuery(limit=1, offset=1))
+    assert total == 2 and rows[0].id == distinct.id
+    connections.disconnect_connection(db_session, user.id)
+    assert actions.update_action_status(db_session, user.id, distinct.id, status="completed")
+    rows, total = actions.action_page(
+        db_session, user.id, ActionQuery(status="completed", email_id=email.id)
+    )
+    assert total == 1 and rows[0].id == distinct.id
+    other = users.create_user(db_session, email=f"phase8-{uuid4()}@example.invalid")
+    assert actions.action_page(db_session, other.id, ActionQuery())[1] == 0
+    with pytest.raises(LookupError):
+        actions.create_or_reuse_action(db_session, other.id, email.id, description="Forbidden")
+
+
+def test_action_api_database_round_trip(db_session: Session, sample: Sample) -> None:
+    user, connection, email = sample
+
+    @contextmanager
+    def begin() -> Iterator[Session]:
+        with db_session.begin_nested():
+            yield db_session
+
+    database = Mock()
+    database.session_factory.begin.side_effect = begin
+    app = create_app(Settings(_env_file=None, secret_key="test"))
+    app.config["TESTING"] = True
+    app.extensions["database"] = database
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = str(user.id)
+        session["csrf_token"] = "csrf"
+    headers = {"X-CSRF-Token": "csrf"}
+    payload = {"email_id": str(email.id), "description": "Review proposal", "due_date": None}
+    response = client.post("/api/actions", json=payload, headers=headers)
+    assert response.status_code == 201
+    action = response.json["data"]["action"]
+    assert action["email_subject"] == email.subject
+    assert action["created_at"] and action["updated_at"]
+    action_id = action["id"]
+    connections.disconnect_connection(db_session, user.id)
+    for status in ("in_progress", "completed", "dismissed", "pending"):
+        response = client.patch(
+            f"/api/actions/{action_id}", json={"status": status}, headers=headers
+        )
+        assert response.status_code == 200
+        assert response.json["data"]["status"] == status
+        db_session.expire_all()
+        listing = client.get(f"/api/actions?status={status}&email_id={email.id}").json["data"]
+        assert listing["total"] == 1
+        assert listing["actions"][0]["status"] == status
+        duplicate = client.post("/api/actions", json=payload, headers=headers)
+        assert duplicate.status_code == 200
+        assert duplicate.json["data"]["reused"] is True
+        assert duplicate.json["data"]["action"]["id"] == action_id
+    other = users.create_user(db_session, email=f"phase8-route-{uuid4()}@example.invalid")
+    with client.session_transaction() as session:
+        session["user_id"] = str(other.id)
+    assert client.get("/api/actions").json["data"]["total"] == 0
+    assert client.post("/api/actions", json=payload, headers=headers).status_code == 404
+    assert (
+        client.patch(
+            f"/api/actions/{action_id}", json={"status": "completed"}, headers=headers
+        ).status_code
+        == 404
+    )
 
 
 def test_analysis_history_and_latest_success(db_session: Session, sample: Sample) -> None:

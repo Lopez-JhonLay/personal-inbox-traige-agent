@@ -8,6 +8,7 @@ import {
 import { formatTimestamp } from '../utils/dates'
 import { analysisLabels } from '../utils/emailStatus'
 import { SuggestedReply } from './SuggestedReply'
+import { AddAction } from './AddAction'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { ErrorState } from './ui/ErrorState'
@@ -125,16 +126,6 @@ export function EmailDetail({
                 </p>
               </div>
             )}
-            {!busy &&
-              !mutation.isError &&
-              email.analysis_status === 'failed' && (
-                <p className="mb-5 rounded-control bg-warning-soft p-3 text-sm">
-                  We couldn’t finish analyzing this email.{' '}
-                  {analysis
-                    ? 'Your previous summary and reply are still here. Try again when you’re ready.'
-                    : 'Try again when you’re ready.'}
-                </p>
-              )}
             <h3 className="text-lg">Summary</h3>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">
               {analysis?.summary ||
@@ -186,6 +177,14 @@ export function EmailDetail({
             <p className="mt-5 text-xs text-muted">
               AI suggestions. Check the original email before acting.
             </p>
+            <AddAction
+              userId={userId}
+              emailId={id}
+              description={
+                analysis?.suggested_action || analysis?.requested_action || ''
+              }
+              dueDate={analysis?.deadline}
+            />
             <details className="mt-5 rounded-control border border-line">
               <summary className="min-h-11 cursor-pointer px-4 py-3 text-sm font-semibold">
                 Original email
@@ -196,7 +195,7 @@ export function EmailDetail({
             </details>
             {analysis?.draft_reply && (
               <SuggestedReply
-                key={analysis.draft_reply}
+                key={`${id}:${analysis.id}`}
                 reply={analysis.draft_reply}
               />
             )}
@@ -222,14 +221,6 @@ export function EmailDetail({
               />
               {busy ? 'Analyzing…' : actionLabel}
             </Button>
-            {!busy && mutation.isError && (
-              <ErrorState message={mutation.error.message} />
-            )}
-            {!busy && mutation.isSuccess && (
-              <p role="status" className="mt-2 text-sm">
-                Analysis saved.
-              </p>
-            )}
           </>
         )}
       </div>
@@ -246,7 +237,8 @@ export function EmailDetail({
             ? 'Create a fresh summary and suggested reply for this email. Your current results stay available if it doesn’t finish.'
             : 'Get a summary, key details, and a suggested reply when one is needed.'}{' '}
           Your email text is shared with our AI service to do this. Nothing is
-          sent to the sender.
+          sent to the sender. Clear requests may automatically become Pending
+          tasks in Actions. Existing tasks stay unchanged.
         </p>
         <div className="cluster mt-5 gap-3">
           <Button variant="secondary" onClick={() => dialog.current?.close()}>

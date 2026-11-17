@@ -3,6 +3,7 @@ import { useAuthStatus } from '../hooks/useAuth'
 import { googleConnectUrl } from '../services/auth'
 import { Button } from './ui/Button'
 import { ErrorState } from './ui/ErrorState'
+import { notify } from '../notifications/toasts'
 
 const outcomeMessages: Record<string, string> = {
   OAUTH_DENIED:
@@ -70,24 +71,22 @@ export function GoogleSignInNotice() {
   )
   useEffect(() => {
     if (!outcome) return
+    notify(
+      outcome === 'removed'
+        ? 'success'
+        : outcome === 'removal_warning'
+          ? 'warning'
+          : 'error',
+      outcome === 'removed' || outcome === 'removal_warning'
+        ? 'Gmail access removed'
+        : 'Sign-in needs attention',
+      Object.hasOwn(outcomeMessages, outcome)
+        ? outcomeMessages[outcome]
+        : 'Could not complete Google sign-in. Please try again.',
+    )
     const url = new URL(window.location.href)
     url.searchParams.delete('gmail')
     window.history.replaceState(null, '', url)
   }, [outcome])
-  if (!outcome) return null
-  return (
-    <section
-      id="gmail-connection"
-      aria-label="Sign-in status"
-      className="page-container mt-5 scroll-mt-8"
-    >
-      <div className="rounded-panel border border-ink bg-highlight p-4">
-        <p role="status" className="text-sm">
-          {Object.hasOwn(outcomeMessages, outcome)
-            ? outcomeMessages[outcome]
-            : 'Could not complete Google sign-in. Please try again.'}
-        </p>
-      </div>
-    </section>
-  )
+  return null
 }

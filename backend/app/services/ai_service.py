@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.schemas.analysis_schema import EmailAnalysis, EmailInput, ProviderEmailAnalysis
 from app.services.analysis_prompt import PROMPT_VERSION, build_messages
+from app.services.task_prompt import ADD_ACTION_TOOL, TASK_PROMPT_VERSION, build_task_messages
 
 logger = logging.getLogger(__name__)
 
@@ -175,3 +176,62 @@ def analyze_email(
                 raise error from None
             time.sleep(1)
     raise RuntimeError("Analysis attempts exhausted.")
+
+
+def should_add_action(email: EmailInput, analysis: EmailAnalysis, settings: Settings) -> bool:
+    """One bounded native tool decision; only the caller may execute the validated request."""
+    if not settings.openrouter_api_key or not settings.openrouter_model.strip():
+        raise AnalysisError("AI_NOT_CONFIGURED", "The AI service is not configured.", 503)
+    try:
+        with create_openrouter_client(settings) as client:
+            response = client.chat.completions.create(
+                model=settings.openrouter_model,
+                messages=build_task_messages(email, analysis),
+                tools=[ADD_ACTION_TOOL],
+                tool_choice="auto",
+                max_tokens=1024,
+                timeout=20.0,
+                extra_body={"provider": {"require_parameters": True}},
+            )
+        if len(response.choices) != 1:
+            raise ValueError("Expected one choice.")
+        choice = response.choices[0]
+        message = choice.message
+        if message.refusal or choice.finish_reason == "content_filter":
+            raise AnalysisError("AI_REFUSED", "The AI service declined the task decision.", 502)
+        calls = message.tool_calls or []
+        if calls:
+            if len(calls) != 1 or choice.finish_reason != "tool_calls":
+                raise ValueError("Expected one completed tool call.")
+            call = calls[0]
+            if call.type != "function" or call.function.name != "add_action":
+                raise ValueError("Unknown tool.")
+            if json.loads(call.function.arguments) != {}:
+                raise ValueError("The tool accepts only an empty object.")
+            decision = True
+        else:
+            if choice.finish_reason != "stop" or not (message.content or "").strip():
+                raise ValueError("Incomplete task decision.")
+            decision = False
+        logger.info(
+            "AI task decision completed model=%s prompt_version=%s add_action=%s",
+            response.model,
+            TASK_PROMPT_VERSION,
+            decision,
+        )
+        return decision
+    except APITimeoutError:
+        raise AnalysisError("AI_TIMEOUT", "The task decision timed out.", 504) from None
+    except APIConnectionError:
+        raise AnalysisError("AI_UNAVAILABLE", "The task decision is unavailable.", 503) from None
+    except APIStatusError as exc:
+        if exc.status_code == 429:
+            raise AnalysisError(
+                "AI_RATE_LIMITED",
+                "The task decision is temporarily rate limited.",
+                429,
+                safe_retry_after(exc.response.headers.get("Retry-After")),
+            ) from None
+        raise AnalysisError("AI_UNAVAILABLE", "The task decision is unavailable.", 503) from None
+    except ValueError, APIResponseValidationError:
+        raise AnalysisError("AI_INVALID_OUTPUT", "The task decision was invalid.", 502) from None

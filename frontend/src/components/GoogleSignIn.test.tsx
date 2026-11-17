@@ -44,7 +44,7 @@ it('shows sign-in failures and explicitly requests consent when a refresh token 
     </>,
     { wrapper },
   )
-  expect(screen.getByRole('status')).toHaveTextContent('approve Gmail access')
+  expect(screen.getByRole('alert')).toHaveTextContent('approve Gmail access')
   expect(
     screen.getByRole('link', { name: 'Continue with Google' }),
   ).toHaveAttribute('href', '/api/auth/google?reconnect=1')
@@ -77,7 +77,7 @@ it('uses a safe fallback for unknown callback outcomes', () => {
   window.history.replaceState(null, '', '/?gmail=__proto__')
   const { wrapper } = harness(anonymousStatus())
   render(<GoogleSignInNotice />, { wrapper })
-  expect(screen.getByRole('status')).toHaveTextContent(
+  expect(screen.getByRole('alert')).toHaveTextContent(
     'Could not complete Google sign-in. Please try again.',
   )
 })

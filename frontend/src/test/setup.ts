@@ -1,8 +1,13 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, render } from '@testing-library/react'
+import { createElement } from 'react'
+import { ToastViewport } from '../components/ui/ToastViewport'
+import { clearToasts } from '../notifications/toasts'
 import { afterEach, beforeEach, vi } from 'vitest'
 
 beforeEach(() => {
+  clearToasts()
+  render(createElement(ToastViewport))
   // Every test must explicitly mock its requests; never reach the backend or providers.
   vi.stubGlobal(
     'fetch',
@@ -11,6 +16,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  clearToasts()
 })
 
 Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {

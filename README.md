@@ -26,7 +26,7 @@ Phase 7 adds `/dashboard` for stored emails, filters, details, and processing, p
 Gmail inbox to review and redirects to the dashboard. Signed-in users visiting `/`
 are redirected automatically; there is no Open dashboard detour. The right-side fictional inbox preview remains. Log out ends the browser
 session without revoking Gmail; Remove Gmail access in Settings revokes access and
-logs out while retaining saved emails. Browser acceptance remains pending; see the
+logs out while retaining saved emails. Phase 7 browser acceptance was confirmed by the user; see the
 [Phase 7 guide](docs/TASKS.md#phase-7-verification-guide). Deployment is still future work.
 Phase 2 analyzes supplied plain-text
 synthetic emails without persistence; see [the Phase 2 guide](docs/TASKS.md#phase-2-analysis-and-testing-guide).
@@ -284,8 +284,8 @@ and one Sync inbox action. Filters live in one responsive toolbar: Priority, Cat
 Analysis status, Sort, and Needs reply. Each control appears once, with one Clear filters
 button. There are no duplicate quick views, filter chips, or summary-count rows. Changing
 filters resets pagination/selection; clearing filters preserves sorting. Highest priority
-is the default, and explicit URL sort values are preserved. Pending-action UI remains
-outside the current workflow until Phase 8.
+is the default, and explicit URL sort values are preserved. Phase 8 adds the
+Pending-only action count and filter.
 
 Desktop keeps a compact email list beside a wider reader, including an empty reader
 before selection. Mobile opens the reader full-width with Back to inbox, retaining list
@@ -314,6 +314,62 @@ page stops scheduling new requests, while any request already running may finish
 Authenticated `/api/emails` endpoints provide listing, detail, analysis, and history;
 mutations use the existing session CSRF token. Imported data remains after disconnect,
 with automated retention controls deferred. The landing page does not display email content.
+
+## Actions and reply editing (Phase 8)
+
+Actions use compact task rows with a one-click complete/reopen control, colored status
+selectors, and calendar dates formatted for readability. Single-page lists hide paging
+buttons. Operation feedback appears in a shared notification stack at the top of the
+viewport: successes dismiss after 4.5 seconds; errors and warnings after 7 seconds.
+Notifications have a close button, pause while hovered/focused or the tab is hidden,
+and remain accessible above an open dialog. Repeated messages are deduplicated and
+the stack holds at most three. Signing out or changing accounts clears private notices.
+
+Task updates, analysis outcomes, batch processing, copying replies, sign-in outcomes,
+logout, and access removal use these notifications. Batch analysis shows one summary
+instead of per-email alerts. Service errors use plain recovery advice. Loading/retry
+states remain beside content that could not be loaded; active/paused processing still
+shows progress. This notification system adds no dependency or backend API change.
+
+When you start inbox analysis or reanalysis, Mailkind may automatically create one
+Pending task for an email's clear outstanding obligation. After the existing analysis,
+a separate bounded AI request offers an `add_action({})` tool. The model chooses
+whether to call it; Flask supplies the current account/email, extracted requested action,
+and validated deadline. It cannot send email or perform the work described by the task.
+No decision request is made for reused analyses, missing requested actions, or emails
+with any existing task. Completed and Dismissed tasks are preserved during reanalysis.
+
+Task-decision errors preserve successful analysis and show an automation warning. A
+task-stage rate limit pauses remaining batch work after saving the current analysis.
+The extra call may add up to 20 seconds per eligible email and consumes provider quota.
+There is no background scheduler, automatic backfill, new setting, or agent framework.
+
+Use **Add to Actions** in an email reader to review a task description and optional
+due date before saving. The form prefills the suggested next step (or requested action)
+and extracted deadline when available; you can also enter a task manually. Matching
+email, trimmed description, and due date reuse the existing task across every status.
+Reanalysis never overwrites saved tasks.
+
+The **Actions** page starts with Pending and supports In Progress, Completed, Dismissed,
+and All statuses, with pagination and links back to the associated saved email. Status
+changes persist in Mailkind. The inbox shows a Pending-only count and **Has pending
+actions** filter. Signed-in users can manage saved tasks when Gmail needs reconnection.
+
+Suggested replies are labeled AI-generated and editable before copying. Edits stay in
+the current reader only; leaving the email or receiving a new analysis resets them.
+Nothing is sent or written to Gmail, and the original saved suggestion remains intact.
+
+Action APIs use the existing authenticated JSON envelope: `GET /api/actions` accepts
+`status`, `email_id`, `limit` (1–100, default 20), and `offset`; `POST /api/actions`
+accepts `email_id`, `description` (1–2,000 trimmed characters), and nullable `due_date`
+(`YYYY-MM-DD`); `PATCH /api/actions/{id}` accepts only `status`. POST/PATCH require
+the session CSRF token. Creation returns `{ action, reused }` with 201 for new tasks
+or 200 for reuse. Lists return `{ actions, total, limit, offset }`; PATCH returns
+the saved action. Analysis responses additionally include `auto_action` with status
+`created`, `existing`, `not_needed`, `unavailable`, or `skipped`, plus an action ID or
+safe error/retry metadata when applicable. No migration or additional configuration
+is needed. See the
+[Phase 8 verification guide](docs/TASKS.md#phase-8-verification-guide).
 
 ## Suggested reply format
 

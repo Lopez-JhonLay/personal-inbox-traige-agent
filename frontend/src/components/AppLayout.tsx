@@ -39,7 +39,6 @@ export function AppLayout() {
         onLogout={signOut}
       />
       <main id="app-main" className="page-container py-8">
-        {logout.isError && <ErrorState message={logout.error.message} />}
         {auth.isPending ? (
           <LoadingIndicator label="Checking your session…" />
         ) : auth.data?.authenticated && auth.data.user_id ? (

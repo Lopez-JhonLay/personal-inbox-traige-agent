@@ -1,5 +1,6 @@
 import { useIsMutating } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
+import { notify } from '../notifications/toasts'
 import { useAuthStatus, useDisconnectGmail } from '../hooks/useAuth'
 import { googleConnectUrl } from '../services/auth'
 import { Badge } from './ui/Badge'
@@ -17,7 +18,6 @@ export function GmailConnection({
   const auth = useAuthStatus()
   const status = auth.data
   const disconnect = useDisconnectGmail(status?.user_id ?? null)
-  const [notice, setNotice] = useState('')
   const dialog = useRef<HTMLDialogElement>(null)
   const loggingOut = useIsMutating({ mutationKey: ['auth', 'logout'] }) > 0
   const reconnect =
@@ -27,11 +27,14 @@ export function GmailConnection({
     onBusyChange?.(true)
     try {
       const revoked = await disconnect.mutateAsync()
-      setNotice(
-        revoked
-          ? 'Gmail access removed. You are logged out.'
-          : 'Access removed locally. Google access could not be revoked; remove Mailkind access in your Google Account.',
-      )
+      if (!onRemoved)
+        notify(
+          revoked ? 'success' : 'warning',
+          'Gmail access removed',
+          revoked
+            ? 'You are logged out. Your saved emails are still available.'
+            : 'You are logged out. To finish removing access, visit your Google Account settings.',
+        )
       dialog.current?.close()
       onRemoved?.(revoked)
       // Keep the auth guard waiting until the successful navigation unmounts it.
@@ -93,11 +96,6 @@ export function GmailConnection({
         Remove access only if you want to stop Mailkind from reading your Gmail.
         To end your visit, use Log out. Saved emails remain in Mailkind.
       </p>
-      {notice && (
-        <p className="mt-3 text-sm" role="status">
-          {notice}
-        </p>
-      )}
       {auth.isError && (
         <ErrorState
           message="Gmail access status is unavailable."
@@ -141,9 +139,6 @@ export function GmailConnection({
               : 'Remove access and log out'}
           </Button>
         </div>
-        {disconnect.isError && (
-          <ErrorState message={disconnect.error.message} />
-        )}
       </dialog>
     </section>
   )

@@ -8,6 +8,7 @@ import { ApiError } from '../services/api'
 import { disconnectGmail, getConnectionStatus, logout } from '../services/auth'
 import { authKey, endSession } from '../query/queryClient'
 import type { ConnectionStatus } from '../types/api'
+import { notify } from '../notifications/toasts'
 
 export function useAuthStatus() {
   return useQuery({
@@ -53,6 +54,11 @@ export function useLogout(userId: string | null) {
     mutationFn: () => logout(requireSession(client, userId ?? '').csrf_token),
     onSuccess: async () => {
       await endSession(client)
+      notify(
+        'success',
+        'You’re logged out',
+        'Your saved emails and tasks will be here when you return.',
+      )
     },
   })
 }

@@ -4,7 +4,8 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { emailKeys } from '../query/queryClient'
+import { authKey, emailKeys } from '../query/queryClient'
+import { notifyAnalysis } from '../notifications/toasts'
 import { ApiError } from '../services/api'
 import {
   analyzeStoredEmail,
@@ -14,7 +15,12 @@ import {
   getEmail,
   getOverview,
 } from '../services/emails'
-import type { EmailFilters, ProcessingCounts } from '../types/api'
+import type {
+  AnalysisResult,
+  ConnectionStatus,
+  EmailFilters,
+  ProcessingCounts,
+} from '../types/api'
 import { requireSession, useAuthStatus } from './useAuth'
 
 export function useProcessingCounts(userId: string) {
@@ -38,7 +44,7 @@ export function useProcessingCounts(userId: string) {
   })
 }
 
-export function useEmailMutations(userId: string) {
+export function useEmailMutations(userId: string, silent = false) {
   const client = useQueryClient()
   function token() {
     const auth = requireSession(client, userId)
@@ -53,19 +59,31 @@ export function useEmailMutations(userId: string) {
   function invalidate() {
     return client.invalidateQueries({ queryKey: emailKeys.all(userId) })
   }
+  function analyzed(result: AnalysisResult) {
+    if (
+      !silent &&
+      client.getQueryData<ConnectionStatus>(authKey)?.user_id === userId
+    )
+      notifyAnalysis(result)
+  }
   const sync = useMutation({
     mutationKey: ['emails', userId, 'sync'],
+    meta: { silent },
     mutationFn: () => syncInbox(token()),
     onSettled: invalidate,
   })
   const analyze = useMutation({
     mutationKey: ['emails', userId, 'analyze'],
+    meta: { silent },
     mutationFn: (id: string) => analyzeStoredEmail(id, token()),
+    onSuccess: analyzed,
     onSettled: invalidate,
   })
   const reanalyze = useMutation({
     mutationKey: ['emails', userId, 'reanalyze'],
+    meta: { silent },
     mutationFn: (id: string) => analyzeStoredEmail(id, token(), true),
+    onSuccess: analyzed,
     onSettled: invalidate,
   })
   return { sync, analyze, reanalyze }

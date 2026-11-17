@@ -92,7 +92,7 @@ it('keeps a single consent retry in the navbar when Google sign-in needs approva
     '/?gmail=REFRESH_TOKEN_REQUIRED#gmail-connection',
   )
   landing()
-  expect(screen.getByRole('status')).toHaveTextContent('approve Gmail access')
+  expect(screen.getByRole('alert')).toHaveTextContent('approve Gmail access')
   expect(
     screen.getAllByRole('link', { name: 'Continue with Google' }),
   ).toHaveLength(1)

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import func, select
@@ -58,6 +58,87 @@ def test_disconnect_during_provider_call_prevents_new_writes(pipeline, stage) ->
         assert analyses.latest_completed_analysis(p.session, p.user.id, email_id) is None
 
 
+def task_email_id(p: SimpleNamespace) -> UUID:
+    return emails.save_email(
+        p.session,
+        p.user.id,
+        gmail_connection_id=p.connection.id,
+        gmail_message_id="task-synthetic",
+        gmail_thread_id="task-synthetic",
+        subject="Review report",
+        body="Please review the fictional report.",
+        received_at=datetime.now(UTC),
+    ).id
+
+
+def test_automatic_task_persistence_and_status_preservation(pipeline) -> None:
+    p = pipeline
+    email_id = task_email_id(p)
+    service.should_add_action.return_value = True
+    result = service.process_email(p.settings, p.database, p.user.id, email_id)
+    assert result["auto_action"]["status"] == "created"
+    task = actions.first_email_action(p.session, p.user.id, email_id)
+    assert task.description == "Review document." and task.status == "pending"
+    for status in ("in_progress", "completed", "dismissed"):
+        actions.update_action_status(p.session, p.user.id, task.id, status=status)
+        result = service.process_email(p.settings, p.database, p.user.id, email_id, force=True)
+        assert result["auto_action"]["status"] == "existing"
+        p.session.expire_all()
+        assert actions.first_email_action(p.session, p.user.id, email_id).status == status
+    assert len(actions.list_actions(p.session, p.user.id)) == 1
+    assert service.should_add_action.call_count == 1
+
+
+def test_automatic_task_savepoint_keeps_successful_analysis(pipeline, monkeypatch) -> None:
+    p = pipeline
+    email_id = task_email_id(p)
+    service.should_add_action.return_value = True
+    original = actions.create_automatic_action
+
+    def fail_after_insert(*args, **kwargs):
+        original(*args, **kwargs)
+        raise IntegrityError("synthetic", {}, Exception("synthetic failure"))
+
+    monkeypatch.setattr(actions, "create_automatic_action", fail_after_insert)
+    result = service.process_email(p.settings, p.database, p.user.id, email_id)
+    assert result["auto_action"]["status"] == "unavailable"
+    p.session.expire_all()
+    assert actions.first_email_action(p.session, p.user.id, email_id) is None
+    assert analyses.latest_completed_analysis(p.session, p.user.id, email_id) is not None
+
+
+def test_manual_task_created_during_decision_is_preserved(pipeline) -> None:
+    p = pipeline
+    email_id = task_email_id(p)
+
+    def decide(*args):
+        task = actions.create_action(p.session, p.user.id, email_id, description="My reviewed task")
+        actions.update_action_status(p.session, p.user.id, task.id, status="dismissed")
+        return True
+
+    service.should_add_action.side_effect = decide
+    result = service.process_email(p.settings, p.database, p.user.id, email_id)
+    assert result["auto_action"]["status"] == "existing"
+    task = actions.first_email_action(p.session, p.user.id, email_id)
+    assert task.description == "My reviewed task" and task.status == "dismissed"
+    assert len(actions.list_actions(p.session, p.user.id)) == 1
+
+
+def test_disconnect_during_task_decision_prevents_writes(pipeline) -> None:
+    p = pipeline
+    email_id = task_email_id(p)
+
+    def decide(*args):
+        connections.disconnect_connection(p.session, p.user.id)
+        return True
+
+    service.should_add_action.side_effect = decide
+    with pytest.raises(IntegrationError, match="OPERATION_EXPIRED"):
+        service.process_email(p.settings, p.database, p.user.id, email_id)
+    assert actions.first_email_action(p.session, p.user.id, email_id) is None
+    assert analyses.latest_completed_analysis(p.session, p.user.id, email_id) is None
+
+
 @pytest.fixture
 def pipeline(db_session: Session, monkeypatch):
     @contextmanager
@@ -110,6 +191,7 @@ def pipeline(db_session: Session, monkeypatch):
         "model": "synthetic-model",
     }
     monkeypatch.setattr(service, "analyze_email", Mock(return_value=result))
+    monkeypatch.setattr(service, "should_add_action", Mock(return_value=False))
     return SimpleNamespace(
         database=database,
         session=db_session,

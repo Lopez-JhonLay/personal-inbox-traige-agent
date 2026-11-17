@@ -5,8 +5,8 @@
 Detailed checklists are linked under [Overall Progress](#overall-progress).
 Key milestones are recorded in [Development History](#development-history).
 
-**Version:** 1.13\
-**Status:** In Progress - Phase 7 Implementation Ready; Phase 6/7 Browser Review Pending\
+**Version:** 1.17\
+**Status:** Phases 0-7 Complete; Phase 8 Implementation Ready - Browser Acceptance Pending\
 **Project:** Mailkind  
 **Development Approach:** Incremental, Project-Based Learning
 
@@ -95,8 +95,8 @@ that those features or the full MVP are complete.
 - [x] [Phase 3 — Database Design & Persistence](#phase-3--database-design--persistence)
 - [x] [Phase 4 — Google OAuth & Gmail Integration](#phase-4--google-oauth--gmail-integration)
 - [x] [Phase 5 — Email Synchronization & AI Pipeline](#phase-5--email-synchronization--ai-pipeline)
-- [ ] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
-- [ ] [Phase 7 — Dashboard & Email Management](#phase-7--dashboard--email-management)
+- [x] [Phase 6 — React Frontend Foundation](#phase-6--react-frontend-foundation)
+- [x] [Phase 7 — Dashboard & Email Management](#phase-7--dashboard--email-management)
 - [ ] [Phase 8 — Action Tracking & Reply Drafts](#phase-8--action-tracking--reply-drafts)
 - [ ] [Phase 9 — Testing, AI Evaluation & Security](#phase-9--testing-ai-evaluation--security)
 - [ ] [Phase 10 — Deployment & Final Validation](#phase-10--deployment--final-validation)
@@ -1079,7 +1079,7 @@ production function time limits in Phase 10; Phase 5 uses bounded synchronous re
 # Phase 6 — React Frontend Foundation
 
 
-**Status:** In Progress — Foundation Implemented and Automated Tests Passed; Manual Browser Review Pending
+**Status:** Complete - Automated Checks Passed; Shared Browser Review Confirmed by User
 
 ## Objective
 
@@ -1213,7 +1213,7 @@ Vitest, jsdom, React Testing Library, user-event, and jest-dom are development d
 Frontend lint and production build passed. The existing 134 offline backend tests passed;
 15 opt-in Neon tests were skipped because the backend and schema did not change.
 
-### Manual review (pending)
+### Manual review (passed; user-confirmed November 17, 2026)
 
 1. Reload `http://localhost:5173/#gmail-connection`. Connect Gmail yourself if the session
    expired. Existing imported data can be used; no new live inference is needed for this phase.
@@ -1229,15 +1229,16 @@ Frontend lint and production build passed. The existing 134 offline backend test
 Computer-use could inspect the existing Mailkind window, but stopped before reloading because
 it could not verify the Windows browser URL confidently enough to enforce policy. Native
 browser interaction was stopped; no sync, inference, or disconnect action was performed.
-Desktop/mobile visual acceptance remains pending. Automated dialog tests use a jsdom shim;
-they do not replace real-browser focus-trap and Escape verification.
+That automated-browser limitation is historical. The user confirmed the remaining shared
+desktop/mobile, navigation, dialog keyboard/focus/Escape and account-flow checks passed
+on November 17, 2026. This records user verification, not an automated browser run.
 
 ---
 
 # Phase 7 — Dashboard & Email Management
 
 
-**Status:** Implementation Ready - Automated Checks Passed; Browser Acceptance Pending
+**Status:** Complete - Automated Checks Passed; Manual Acceptance Confirmed by User
 
 ## Objective
 
@@ -1267,10 +1268,10 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [x] Create dashboard page.
 - [x] Display connected Gmail account.
 - [x] Display last synchronization time.
-- [x] Display total analyzed emails.
-- [x] Display high-priority count.
-- [x] Display reply-needed count.
-- [ ] Display pending-action count (UI deferred to Phase 8; overview API support remains).
+- [x] Support total analyzed emails in the overview API; redundant count UI removed by request.
+- [x] Support high-priority count in the overview API; redundant count UI removed by request.
+- [x] Support reply-needed count in the overview API; redundant count UI removed by request.
+Pending-action count UI is deferred to Phase 8; overview API support remains.
 - [x] Add Sync Inbox button.
 
 ### 7.3 Email List
@@ -1290,7 +1291,7 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 - [x] Filter emails by priority.
 - [x] Filter emails by category.
 - [x] Filter emails requiring replies.
-- [ ] Filter emails with pending actions (UI deferred to Phase 8; API support remains).
+Pending-action filtering UI is deferred to Phase 8; API support remains.
 - [x] Add sorting options.
 - [x] Keep filters synchronized with API queries.
 
@@ -1316,18 +1317,27 @@ Build the user-facing dashboard for Gmail connection, email browsing, and AI ana
 
 ## Phase Completion Checklist
 
-- [ ] User can navigate the application.
-- [ ] Gmail connection flow works through the UI.
-- [ ] Dashboard displays stored email data.
-- [ ] Emails can be filtered and opened.
-- [ ] AI analysis is clearly presented.
-- [ ] Synchronization can be triggered from the dashboard.
+- [x] User can navigate the application.
+- [x] Gmail connection flow works through the UI.
+- [x] Dashboard displays stored email data.
+- [x] Emails can be filtered and opened.
+- [x] AI analysis is clearly presented.
+- [x] Synchronization can be triggered from the dashboard.
 
 **Deliverable:** Functional inbox dashboard.
 
 ## Phase 7 Verification Guide
 
-Implementation is ready; real-browser acceptance remains pending.
+Phase 7 is complete for the agreed scope. On November 17, 2026, the user confirmed
+all remaining manual checks passed: desktop/mobile layout, filters/pagination/navigation,
+dialog keyboard focus/Escape/focus return, and sign-in/logout/account switching. Earlier
+user testing also verified stored data, dashboard sync and analysis/reanalysis. This is
+user-confirmed acceptance; earlier automated-browser limitations below are historical.
+
+Final validation before commit `bb12da7`: 181 offline backend tests and 81 frontend tests
+passed, plus frontend build/lint/format, Ruff lint/format, and whitespace checks. Eighteen
+optional Neon tests were skipped in that run; the earlier Neon verification is below.
+Pending-action UI remains explicitly deferred to Phase 8.
 
 - `/dashboard` reads saved emails and overview totals. Filters, sorting, 20-email
   pagination, and selected details use URL parameters. Browsing never triggers AI.
@@ -1344,7 +1354,7 @@ Implementation is ready; real-browser acceptance remains pending.
   frontend lint/format/build, Ruff lint/format, and the whitespace check.
 - Computer-use stopped because it could not confidently determine Chrome's URL.
   No live sync, inference, sign-out, revocation, or Google consent was performed.
-  Desktop/mobile visual checks and real-browser dialog focus/Escape remain pending.
+  The user subsequently confirmed desktop/mobile and real-browser dialog checks passed.
 
 Dashboard UX refinement:
 
@@ -1356,7 +1366,7 @@ Dashboard UX refinement:
   Sync has its existing confirmation and active inbox scope; conditional Continue/Retry
   controls support recovery; failed emails are viewed through the single toolbar status filter. Structured progress reports real batch work.
 - No database migration, backend change, provider call, or persistent reviewed state was
-  added for this UX refinement. Browser layout/focus acceptance remains pending.
+  added for this UX refinement. Browser layout/focus acceptance was subsequently confirmed by the user.
 - Follow-up simplification removes the redundant global-count row, quick-view buttons,
   collapsible filter section, and chips. One responsive toolbar now contains each filter
   once, plus sorting and a single Clear filters control. Inbox pagination is fixed below
@@ -1368,12 +1378,12 @@ Dashboard UX refinement:
   again to populate the photo; no schema migration or live Google consent was performed.
 - Updated checks: 76 frontend tests and 168 offline backend tests passed, including
   navbar keyboard/closing behavior, image fallback, profile response validation, optional
-  profile failures, scope changes, and session cleanup. Browser acceptance remains pending.
+  profile failures, scope changes, and session cleanup. Browser acceptance was subsequently confirmed by the user.
 - Final UX checks: all 76 mocked frontend tests and lint/format/build passed. The
   connected-browser verification attempt reported that the browser access host is
-  unavailable; desktop/mobile visual acceptance remains a manual check.
+  unavailable; the user subsequently confirmed desktop/mobile visual acceptance.
 
-Manual acceptance:
+Manual acceptance (passed; user-confirmed November 17, 2026):
 
 1. Open `http://localhost:5173`. Anonymous visitors see one Continue with Google
    button in the navbar, with the Google logo and read-only Gmail disclosure. Active
@@ -1400,9 +1410,9 @@ Manual acceptance:
    retains saved emails, and shows a warning if Google revocation fails. Next sign-in
    may require a consent retry because the stored credentials were removed.
 7. Repeat browsing at desktop and 320px widths; check wrapping and no horizontal
-   overflow. Complete the pending Phase 6 browser checks at the same time.
+   overflow. The shared Phase 6 browser checks are covered by this acceptance.
 
-Action creation/tracking, editable/copyable reply drafts, timezone editing,
+Action creation/tracking, reply editing, timezone editing,
 automatic synchronization, and deployment remain later work.
 
 ---
@@ -1410,7 +1420,7 @@ automatic synchronization, and deployment remain later work.
 # Phase 8 — Action Tracking & Reply Drafts
 
 
-**Status:** Not Started
+**Status:** Implementation Ready - Automated Checks Passed; Browser Acceptance Pending
 
 ## Objective
 
@@ -1428,35 +1438,38 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 
 ### 8.1 Action Tracking Backend
 
-- [ ] Implement action creation endpoint.
-- [ ] Implement action listing endpoint.
-- [ ] Implement action status update endpoint.
-- [ ] Validate allowed action statuses.
-- [ ] Enforce action ownership.
-- [ ] Persist status changes.
-- [ ] Prevent duplicate action creation where appropriate.
+- [x] Implement action creation endpoint.
+- [x] Implement action listing endpoint.
+- [x] Implement action status update endpoint.
+- [x] Validate allowed action statuses.
+- [x] Enforce action ownership.
+- [x] Persist status changes.
+- [x] Prevent duplicate action creation where appropriate.
 
 ### 8.2 Action Tracker Frontend
 
-- [ ] Create Action Tracker page.
-- [ ] Display pending actions.
-- [ ] Display associated emails.
-- [ ] Display deadlines.
-- [ ] Implement Add to Actions functionality.
-- [ ] Implement Pending status.
-- [ ] Implement In Progress status.
-- [ ] Implement Completed status.
-- [ ] Implement Dismissed status.
-- [ ] Update cached queries after mutations.
+- [x] Display pending-action count (deferred from Phase 7).
+- [x] Filter emails with pending actions (deferred from Phase 7).
+
+- [x] Create Action Tracker page.
+- [x] Display pending actions.
+- [x] Display associated emails.
+- [x] Display deadlines.
+- [x] Implement Add to Actions functionality.
+- [x] Implement Pending status.
+- [x] Implement In Progress status.
+- [x] Implement Completed status.
+- [x] Implement Dismissed status.
+- [x] Update cached queries after mutations.
 
 ### 8.3 Reply Drafts
 
-- [ ] Display AI-generated suggested replies.
-- [ ] Allow user to edit reply text.
-- [ ] Implement Copy Reply functionality.
-- [ ] Prevent automatic email sending.
-- [ ] Clearly identify AI-generated text.
-- [ ] Avoid unsupported promises in generated replies.
+- [x] Display AI-generated suggested replies.
+- [x] Allow user to edit reply text.
+- [x] Implement Copy Reply functionality.
+- [x] Prevent automatic email sending.
+- [x] Clearly identify AI-generated text.
+- [x] Avoid unsupported promises in generated replies.
 
 ## Phase Completion Checklist
 
@@ -1467,6 +1480,165 @@ Allow users to manage recommended actions and review AI-generated reply suggesti
 - [ ] No Gmail write operations occur.
 
 **Deliverable:** Action tracker and editable AI reply suggestions.
+
+## Phase 8 Verification Guide
+
+Implemented November 17, 2026, using the existing action table and repository patterns.
+No migration, dependency, or new Gmail scope is required. The original analysis prompt
+is unchanged; automatic tasks use a separate decision prompt. Phase 6/7
+acceptance remains complete; the following browser acceptance applies only to Phase 8.
+
+- Manual action creation uses an editable description/date approval form. Automatic
+  creation during user-started analysis is described below. Suggestions prefill the
+  manual form; manual tasks work without an analysis. Description is
+  trimmed and limited to 2,000 characters; dates use YYYY-MM-DD or null.
+- GET/POST `/api/actions` and PATCH `/api/actions/{id}` enforce session ownership;
+  POST/PATCH require CSRF. Lists support status/email filters and bounded pagination.
+  Responses include associated email subject/sender and use Cache-Control: no-store.
+- Creation returns 201 for a new Pending task or 200 with `reused: true` for matching
+  owner/email/trimmed description/date, across all statuses. A short email-row lock
+  serializes duplicate submissions. Distinct descriptions/dates remain separate tasks.
+  Reanalysis leaves tasks intact; statuses can be changed in either direction.
+- `/actions` defaults to Pending with one status filter and 20-item pagination.
+  Due dates sort first, undated last. Email links open the existing inbox reader.
+  Pending-only counts and filtering use the existing overview/list endpoints.
+- Action queries are account-scoped within private email cache keys; mutations use
+  separate action keys and invalidate the user's saved-data queries. Saved tasks remain
+  manageable during Gmail reauthorization. Sign-out/account changes clear private state.
+- Replies are labeled AI-generated and editable before copying. Edits remain temporary
+  in the current reader, survive refetches of the same analysis, and reset for another
+  email/analysis. Blank copying is disabled; clipboard failures retain manual copying.
+  No Gmail write operation is available.
+
+### Original Phase 8 automated validation
+
+- 91 mocked frontend tests passed, including action forms, duplicate feedback, list
+  filtering/pagination, status failures/successes, CSRF refresh, private cache cleanup,
+  pending-filter URL behavior, and editable reply copying/resetting.
+- 206 offline backend tests passed; 20 database tests are opt-in. New offline tests
+  cover action request validation, session/CSRF enforcement, ownership delegation,
+  safe failures, and API contracts.
+- The connected full backend run passed 225 tests, including the then-current 19
+  rollback-only Neon tests. A final targeted run passed both new/revised Phase 8
+  database tests, bringing the verified database set to 20. These cover creation,
+  duplicate reuse across statuses, pagination, persisted status transitions,
+  Pending-only counts/filtering, ownership, and the full Flask API round trip while
+  Gmail is disconnected. Fixtures roll back synthetic data; no schema changes or
+  Gmail/OpenRouter requests were made. The final offline run passed 206 tests and
+  skipped all 20 opt-in database tests.
+- Frontend build/lint/format and backend Ruff checks passed.
+- Browser inventory reported `The browser access host is unavailable`; visual and
+  real-browser keyboard checks were not performed by the agent.
+
+### Automatic task creation follow-up (November 17, 2026)
+
+User-authorized extension: fresh stored-email analysis/reanalysis may automatically
+create a Pending task for a clear outstanding request or responsibility. The existing
+analysis call stays intact. Eligible emails get one extra OpenRouter decision request
+offering `add_action({})` with tool_choice=auto, a 20-second timeout, 1,024 output-token
+cap, and no retries or model follow-up. The backend supplies account/email, requested
+action text, validated deadline, and Pending status. No agent framework, scheduler,
+settings toggle, database column, or Gmail write scope was added.
+
+- Reused analyses, missing requested actions, and emails with any existing owned task
+  skip the extra request. Explicit reanalysis can assess an older email with no task;
+  there is no automatic backfill. Promotions, informational updates, vague suggestions,
+  resolved work, and prompt-injection instructions do not qualify.
+- Before insertion, recheck ownership/operation lease and lock the email using the
+  manual-creation lock. Recheck for any existing task; never overwrite its description,
+  deadline or status, including Completed/Dismissed. A task added manually during the
+  decision takes precedence. Internal task creation never executes the underlying work.
+- Task insertion uses a savepoint inside analysis completion. Isolated insertion and
+  decision failures return an automation warning while preserving analysis. A tool-stage
+  rate limit pauses the remaining batch after counting the current analysis as complete.
+  Transaction-wide database failure or an expired/disconnected operation still prevents
+  writes. No database lock is held during inference.
+- Analysis responses add `auto_action` status: created, existing, not_needed, unavailable,
+  or skipped, with action ID/error/retry metadata when applicable. The reader displays
+  the outcome; batch progress counts created tasks and automation warnings separately
+  from analysis failures. Existing query invalidation refreshes tasks/counts/filtering.
+  Confirmation dialogs explain automatic Pending tasks. Manual Add to Actions remains
+  available; failed automation can be retried with explicit reanalysis when no task exists.
+- These outcomes are transient response/UI metadata. Existing action storage and
+  analysis history remain unchanged; no automatic/manual source field is introduced.
+
+Validation:
+
+- 235 offline backend tests passed, with 24 opt-in database tests skipped. Native tool
+  contract tests reject extra arguments, unknown/multiple calls, malformed output,
+  truncation and refusal; provider errors/timeouts are bounded with safe messages.
+- 97 mocked frontend tests passed, including outcome feedback, task/warning counts,
+  and pausing on tool-stage rate limits without counting successful analysis as failed.
+- Four new rollback-only Neon tests passed: task persistence/status preservation,
+  real savepoint rollback preserving completed analysis, a manual task appearing during
+  the decision, and disconnect during the tool request preventing writes. Provider calls
+  are mocked in these tests. All 11 existing rollback-only sync/analysis pipeline
+  regression tests also passed, for 15 verified pipeline tests across the two runs.
+- Live synthetic task-decision evaluation: v1 passed 7/8 (missed a report-review request).
+  Prompt v2 clarifies the authorized internal scope and positive examples, including
+  obligations without a deadline/reply flag; it passed all 8 cases in a second run.
+  Cases cover review, reply, bill, newsletter, promotion, informational update, resolved
+  work, and prompt injection. Each run was capped at eight requests. No Gmail reading,
+  database task creation, or real email content was involved. These checks evaluate
+  decisions against fixed synthetic analyses, not every possible email.
+- Frontend build/lint/format, backend Ruff checks, and whitespace checks passed.
+
+To repeat the explicitly opt-in synthetic evaluation (up to eight provider requests):
+
+```powershell
+uv run --project backend python backend/scripts/evaluate_task_decisions.py --live --max-requests 8
+```
+
+### Actions UI and notification refinement (November 17, 2026)
+
+- Actions now uses compact responsive rows with status colors, one-click complete/reopen,
+  readable calendar dates, and a concise footer. Paging buttons appear only when needed.
+  Existing URL filtering and backend ordering/pagination remain unchanged.
+- Success, warning and mutation-error feedback appears in a single notification stack
+  at the top of the viewport, with icons, close controls, entrance motion and a countdown.
+  Success dismisses after 4.5 seconds; other notices after 7 seconds. Hover, focus and a
+  hidden tab pause the remaining time. Reduced-motion preferences disable animation.
+- The stack holds at most three messages and deduplicates repeats. It follows the open
+  native dialog's focus boundary and uses a manual popover to display above it. A fallback
+  portal works where the Popover API is unavailable. Read failures still offer retry
+  controls beside the content; completed-operation messages no longer stay in the page.
+- Friendly code-based errors explain how to recover from AI outages, busy/rate-limited
+  services, timeouts and connection failures. Task updates, analysis/automation outcomes,
+  reply copying, sign-in outcomes, logout and access removal use the shared notifications.
+  Batch analysis suppresses individual mutation notices and emits one final summary.
+- Account cleanup clears private notices; late mutation responses from the previous
+  account do not display new notifications. Toast text contains no email bodies or drafts.
+- 104 mocked frontend tests passed, including auto-dismissal, close controls, hover/focus
+  and visibility pauses, stack limits, dialog placement, one-click task completion,
+  friendly failure text and account changes. Build/lint/format checks passed. No backend
+  API, dependency or schema change was needed. Browser preview was unavailable, so the
+  visual and real-browser keyboard checks remain manual. Verify notification positioning
+  on desktop/mobile, expiry and pause behavior, keyboard dismissal, form errors above
+  open dialogs, one batch summary per run, and no stale messages after account changes.
+
+### Manual browser acceptance (pending)
+
+1. Analyze a synthetic email with a clear request and no existing tasks: verify a Pending
+   task appears, the inbox count/filter updates, and the reader/batch reports creation.
+   Repeat with informational/promotional mail and verify no automatic task appears.
+   Complete or dismiss the created task and reanalyze: the existing task must stay intact.
+   When automation is unavailable, confirm the analysis stays saved and manual Add works.
+
+2. Open a saved email and Add to Actions. Review/edit the prefilled description/date;
+   verify Cancel/Escape, focus trapping and return, validation, and manual task creation
+   for an unanalyzed email. Retry a failed request without losing entered text.
+3. Add the same task again, including from two tabs at once: one matching task remains.
+   Complete or dismiss it, add it again, and confirm the existing status is preserved.
+   Reopen it through the Actions status selector when needed.
+4. Verify all four statuses, All, pagination, undated tasks, and associated email links.
+   Reload to verify persistence. Confirm Pending-only count/filter changes when tasks
+   move to In Progress, Completed, Dismissed, or back to Pending.
+5. Edit/copy a suggested reply; verify paragraph breaks, clipboard failure feedback,
+   and the temporary-edit notice. Refetching the same analysis retains edits; switching
+   email or receiving a new analysis resets them. Nothing is sent to Gmail.
+6. Check desktop and 320px/mobile layouts for wrapping, keyboard access and overflow.
+   Verify sign-out/account switching clears task content; a signed-in session needing
+   Gmail reconnection can still update saved tasks.
 
 ---
 
@@ -1806,6 +1978,22 @@ rules remain in the shared references; phase-specific verification is recorded b
   sign-in button; the right-side demo remains and demo links are removed. Log out retains Gmail
   access, and Remove Gmail access is confirmed in Settings.
   Automated checks passed; real-browser acceptance remains pending.
+- **Phase 6/7 acceptance (November 17):** User confirmed all remaining manual browser
+  checks passed, including desktop/mobile layout, navigation/filtering/pagination, dialog
+  keyboard/focus/Escape, and account switching/sign-in/logout. Marked Phase 7 complete
+  for the agreed scope and closed the shared Phase 6 browser review. Pending-action
+  count/filter UI remains Phase 8 work. Commit `bb12da7` contains the implementation;
+  this acceptance documentation is a later working-tree update.
+- **Phase 8 implementation (November 17):** Added owned action APIs, explicit task
+  creation/reuse, a paginated Actions page with persisted statuses, Pending-only inbox
+  count/filter, and temporary editable/copyable reply suggestions. Reused the existing
+  schema and libraries. Automated verification is recorded in the Phase 8 guide;
+  browser acceptance remains pending because the browser access host is unavailable.
+- **Phase 8 agent extension (November 17):** Added a single scoped native add_action
+  tool decision after analysis, with backend-bound arguments, existing-task preservation,
+  savepoint isolation, and visible automation outcomes. Prompt v2 passed all eight live
+  synthetic decision cases after v1 missed one request. Automated test results and
+  remaining browser acceptance are recorded in the Phase 8 guide.
 - **Documentation:** Consolidated all phase checklists, the Phase 2 testing guide,
   and milestone history in this file. Preserved all 554 original checklist entries
   and statuses; shared architecture, requirements, coding, and design references
@@ -1816,13 +2004,13 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 7 - Dashboard & Email Management (implementation ready; manual review pending)\
-**Current Status:** Phases 0 through 5 Complete; Phase 6/7 Implementation and Automated Checks Ready; Browser Acceptance Pending
+**Current Phase:** Phase 8 - Action Tracking & Reply Drafts (implementation ready; browser acceptance pending)\
+**Current Status:** Phases 0 through 7 Complete; Phase 8 Automated Checks Ready; Browser Acceptance Pending
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 
 ---
 
-**Document Version:** 1.13\
+**Document Version:** 1.17\
 **Status:** Active Development Tracker  
 **Last Updated:** November 17, 2026
