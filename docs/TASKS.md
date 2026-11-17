@@ -1777,7 +1777,7 @@ Stop on capacity errors and do not automatically rerun. Keep JSON reports in ign
 
 # Phase 10 — Deployment & Final Validation
 
-**Status:** Frontend and Backend Deployed for Approved Testers; Signed-in Acceptance and Public Launch Pending
+**Status:** Hosted Core Workflow Passed for Approved Testers; Remaining Acceptance and Public Launch Pending
 
 ## Objective
 
@@ -1828,29 +1828,29 @@ Deploy the application and validate the complete workflow in its hosted environm
 - [x] Update authorized origins where required.
 - [ ] Verify OAuth consent configuration.
 - [x] Review Google verification requirements.
-- [ ] Test authorization using an approved account.
+- [x] Test authorization using an approved account.
 - [ ] Verify token refresh and disconnection behavior.
 
 ### 10.5 Database Deployment
 
 - [x] Confirm production Neon database configuration.
 - [x] Verify existing head `0003`; no new migration was required or applied.
-- [ ] Verify production database connectivity.
+- [x] Verify production database connectivity.
 - [ ] Verify database ownership rules.
 - [x] Confirm credentials are stored securely.
 
 ### 10.6 End-to-End Validation
 
-- [ ] Open deployed application.
-- [ ] Connect Gmail.
-- [ ] Synchronize recent emails.
-- [ ] Confirm new emails are stored.
-- [ ] Confirm AI analysis completes.
-- [ ] Confirm results appear in dashboard.
+- [x] Open deployed application.
+- [x] Connect Gmail.
+- [x] Synchronize recent emails.
+- [x] Confirm new emails are stored.
+- [x] Confirm AI analysis completes.
+- [x] Confirm results appear in dashboard.
 - [ ] Test email filtering.
 - [ ] Test email detail view.
 - [ ] Test suggested reply editing.
-- [ ] Test action tracking.
+- [x] Test action tracking.
 - [ ] Test disconnect flow.
 - [ ] Verify no emails are sent or modified automatically.
 
@@ -1868,12 +1868,12 @@ Deploy the application and validate the complete workflow in its hosted environm
 
 - [x] Frontend is deployed.
 - [x] Backend is deployed.
-- [ ] Database is connected.
-- [ ] Gmail OAuth works in the deployed environment.
-- [ ] AI analysis works.
-- [ ] Dashboard displays results.
-- [ ] Action tracking works.
-- [ ] Core end-to-end workflow passes.
+- [x] Database is connected.
+- [x] Gmail OAuth works in the deployed environment.
+- [x] AI analysis works.
+- [x] Dashboard displays results.
+- [x] Action tracking works.
+- [x] Core end-to-end workflow passes.
 - [x] Documentation is up to date.
 
 **Deliverable:** Deployed Mailkind MVP.
@@ -1893,8 +1893,11 @@ Google Console changes, deployed source, HTTP checks, and rollback instructions.
 - Local regression checks pass: 248 backend tests, 104 frontend tests, build/lint/format.
   The 24 rollback-only integration tests passed in Phase 9; no schema change required
   another run. Neon migration version `0003` was verified read-only for deployment.
-- Hosted signed-in persistence, sync/AI/task/reply flow, refresh/disconnect, timeout
-  behavior, and browser/mobile acceptance remain pending. Browser automation is unavailable.
+- The user confirmed hosted Google sign-in reaches the Inbox, then confirmed the
+  fictional labeled-email sync, summary, automatic task creation, and task completion
+  checks passed on November 17, 2026. This confirms the core hosted persistence flow.
+- Reply editing, filtering/detail-specific acceptance, refresh/disconnect, timeout
+  behavior, and mobile/focus checks remain pending. Browser automation is unavailable.
 - This is an approved-tester deployment on free Vercel addresses, not a public launch.
   Domain ownership, provider privacy, Google verification/assessment, and public
   disclosures remain outstanding as recorded in SECURITY_REVIEW.md.
@@ -2055,8 +2058,8 @@ rules remain in the shared references; phase-specific verification is recorded b
 # Project Completion Summary
 
 **Total MVP Phases:** 11 (Phase 0–10)  
-**Current Phase:** Phase 8 - Action Tracking & Reply Drafts (implementation ready; browser acceptance pending)\
-**Current Status:** Phases 0 through 7 Complete; Phase 8 Automated Checks Ready; Browser Acceptance Pending
+**Current Phase:** Phase 10 - Deployment & Final Validation (hosted core workflow passed)
+**Current Status:** Approved-tester deployment verified; remaining browser acceptance and public-launch requirements pending.
 
 **Project Milestone:** Build a fully functional AI-powered Gmail inbox assistant that analyzes messages, prioritizes actions, generates suggested replies, and allows users to manage their inbox more efficiently without sacrificing user control.
 

@@ -32,8 +32,18 @@ Interrupted operations recover through the existing two-minute operation lease.
 ## Production environment
 
 Use Vercel MCP to create/update environment variables on the specified project,
-targeting **Production only**. Keep secrets encrypted, never in frontend variables
-or Git. Configuration changes require a new deployment.
+targeting **Production only**. Store credentials as Vercel **Secret** variables
+(`type: sensitive`, `visibility: secret`), never in frontend variables or Git.
+Encrypted Config variables remain readable to authorized project members and are
+appropriate only for non-sensitive settings. Configuration changes require a new
+deployment.
+
+On November 17, 2026, the environment audit converted `DATABASE_URL`,
+`TOKEN_ENCRYPTION_KEY`, `GOOGLE_CLIENT_SECRET`, `OPENROUTER_API_KEY`, and `SECRET_KEY`
+from encrypted Config to Secret, preserving their values and Production-only scope.
+No values were decrypted, printed, or rotated. The frontend has only the public
+`VITE_API_BASE_URL` Config variable; Google client ID, URLs, model name, feature
+switches, and the sync filter are non-secret configuration.
 
 | Project  | Variables                                                       | Value/source                                                                       |
 | -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -64,6 +74,20 @@ review it separately and use the operator's direct Neon URL through Alembic.
 
 ## Google Console handoff
 
+Public application links for the Google Auth Platform Branding fields:
+
+- Homepage: https://mailkind-web-lopez-jhonlays-projects.vercel.app/
+- Privacy policy: https://mailkind-web-lopez-jhonlays-projects.vercel.app/privacy
+- Terms of service: https://mailkind-web-lopez-jhonlays-projects.vercel.app/terms
+
+The policy pages are public routes outside the authentication layout, with links
+in the homepage footer and Settings. The user approved publishing Jhon Lay Lopez
+as operator and `jhonlaylopez000@gmail.com` as the support/deletion contact. The
+privacy page describes current provider sharing and indefinite retention without
+claiming verified upstream zero-retention or inventing a self-service deletion flow.
+These links do not themselves complete Google verification or resolve the remaining
+provider/privacy release requirements.
+
 In [Google Cloud credentials](https://console.cloud.google.com/apis/credentials),
 open the existing Web application OAuth client and add this exact **Authorized
 redirect URI**, retaining local development's redirect:
@@ -76,6 +100,18 @@ This is a server-side OAuth flow, so it does not require adding an Authorized
 JavaScript origin. Keep the consent app External/Testing and add each approved
 account to Test users. Testing refresh tokens can expire after seven days; reconnect
 through the existing flow when required. Vercel MCP cannot make Google Console changes.
+
+For the user's chosen **unverified signup** rollout, change Google Auth Platform
+Audience from Testing to In production using Publish app. Published External apps
+can accept Google users outside the test-user list, but restricted-scope unverified
+warnings and a hard cap of 100 total users remain. This is different from completing
+Google verification. The operator must confirm the Console change; Vercel MCP cannot
+perform or independently verify it. See [Google's app-state comparison](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview).
+
+The existing `label:mailkind-test` sync filter remains configured until a separate
+change is requested. Accepting an unverified warning does not resolve the provider
+data-handling and public privacy requirements in the security review. An owned domain
+is needed for full brand verification, not simply to serve the existing website.
 
 ## Deployment and acceptance
 
@@ -133,11 +169,16 @@ Verified without browser authentication:
   build, frontend lint/format, Ruff, and deployment configuration consistency checks.
   Existing Neon migration `0003` was read without changing schema or application data.
 
-Signed-in browser login, hosted database writes, sync/analysis/task/reply acceptance,
-disconnect/refresh, mobile/focus behavior, and public-release requirements remain
-pending until observed. Computer-use reported no available browser/native surface;
-HTTP probes do not substitute for those checks. No real email content or live AI
-evaluation requests were used by the automated deployment probes.
+The user confirmed on November 17, 2026 that Google sign-in opens the hosted Inbox,
+then confirmed the fictional labeled-email sync, summary, automatic task creation,
+and task completion checks passed. The core hosted database and AI workflow therefore
+passed user-observed acceptance.
+
+Reply editing, filtering/detail-specific checks, disconnect/refresh, mobile/focus
+behavior, and public-release requirements remain pending. Computer-use reported no
+available browser/native surface; HTTP probes do not substitute for those checks.
+No real email content or live AI evaluation requests were used by the automated
+deployment probes.
 
 ## Rollback and public launch
 

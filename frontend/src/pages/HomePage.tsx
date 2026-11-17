@@ -9,6 +9,7 @@ import {
 import { InboxPreview } from '../components/InboxPreview'
 import { LoadingIndicator } from '../components/ui/LoadingIndicator'
 import { useAuthStatus } from '../hooks/useAuth'
+import { PolicyLinks } from '../components/PolicyLinks'
 
 const navigation = [
   { label: 'How it works', href: '#how-it-works' },
@@ -293,6 +294,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="text-xs text-muted sm:text-right">
+            <PolicyLinks />
             <a
               href="#top"
               className="inline-flex min-h-11 items-center gap-2 text-ink"

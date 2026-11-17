@@ -41,6 +41,10 @@ Flask, with `/api` forwarded through the frontend hostname. See the
 Google Console setup, acceptance checks, and rollback. Initial hosted access is for
 approved Google test users; public-launch verification remains separate.
 
+Public `/privacy` and `/terms` pages are linked from the homepage and Settings.
+They describe current data handling, operator-assisted deletion, AI limitations,
+and service terms, and can be used in Google Auth Platform's Branding fields.
+
 Git uses `main` for the initial scaffold and documentation. The SSH origin is
 `git@github.com:Lopez-JhonLay/personal-inbox-traige-agent.git`. Repository-local Git
 settings use `Lopez-JhonLay`, `jhonlaylopez000@gmail.com`, and the personal

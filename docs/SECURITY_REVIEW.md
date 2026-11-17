@@ -3,6 +3,14 @@
 Reviewed November 17, 2026. This is a source review and regression-test record,
 not a penetration test, compliance certification, or production approval.
 
+Hosted environment audit on November 17, 2026: five backend credentials
+(`DATABASE_URL`, `TOKEN_ENCRYPTION_KEY`, `GOOGLE_CLIENT_SECRET`, `OPENROUTER_API_KEY`,
+`SECRET_KEY`) were converted from encrypted Config to Vercel Secret and verified by
+metadata. Values were preserved without decrypting or displaying them; all remain
+Production-only. The frontend contains only public API-base configuration.
+The user accepts an unverified Google signup rollout, which retains Google's warning
+and 100-user cap; this does not establish public-policy compliance.
+
 Validation: 248 offline backend tests and all 24 rollback-only Neon tests passed
 (272 combined). All 104 frontend tests, frontend lint/format/build, targeted Python
 lint/format, and documentation formatting passed. Database verification took 484.56

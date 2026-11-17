@@ -5,6 +5,7 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingIndicator } from '../components/ui/LoadingIndicator'
 import { useAuthStatus } from '../hooks/useAuth'
 import { useInboxOverview } from '../hooks/useEmails'
+import { PolicyLinks } from '../components/PolicyLinks'
 
 export default function SettingsPage() {
   const auth = useAuthStatus()
@@ -53,6 +54,9 @@ function Settings({ userId }: { userId: string }) {
           )
         }
       />
+      <div className="mt-6 text-muted">
+        <PolicyLinks />
+      </div>
     </>
   )
 }
